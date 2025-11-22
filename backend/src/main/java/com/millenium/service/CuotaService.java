@@ -52,4 +52,30 @@ public class CuotaService {
     public List<Cuota> findByEstado(String estado) {
         return cuotaRepository.findByEstado(estado);
     }
+    
+    public Page<Cuota> findByFilters(String estado, String formaPago, LocalDate fechaInicio, LocalDate fechaFin, Pageable pageable) {
+        Page<Cuota> cuotas;
+        
+        if (estado != null && formaPago != null && fechaInicio != null && fechaFin != null) {
+            cuotas = cuotaRepository.findByEstadoAndFormaPagoAndFechaPagoBetween(estado, formaPago, fechaInicio, fechaFin, pageable);
+        } else if (estado != null && formaPago != null) {
+            cuotas = cuotaRepository.findByEstadoAndFormaPago(estado, formaPago, pageable);
+        } else if (estado != null && fechaInicio != null && fechaFin != null) {
+            cuotas = cuotaRepository.findByEstadoAndFechaPagoBetween(estado, fechaInicio, fechaFin, pageable);
+        } else if (formaPago != null && fechaInicio != null && fechaFin != null) {
+            cuotas = cuotaRepository.findByFormaPagoAndFechaPagoBetween(formaPago, fechaInicio, fechaFin, pageable);
+        } else if (estado != null) {
+            cuotas = cuotaRepository.findByEstado(estado, pageable);
+        } else if (formaPago != null) {
+            cuotas = cuotaRepository.findByFormaPago(formaPago, pageable);
+        } else if (fechaInicio != null && fechaFin != null) {
+            cuotas = cuotaRepository.findByFechaPagoBetween(fechaInicio, fechaFin, pageable);
+        } else {
+            cuotas = cuotaRepository.findAll(pageable);
+        }
+        
+        // Forzar la carga de los alumnos
+        cuotas.forEach(c -> c.getAlumno().getNombre());
+        return cuotas;
+    }
 }

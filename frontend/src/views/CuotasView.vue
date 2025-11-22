@@ -13,6 +13,53 @@
         </template>
       </a-page-header>
       
+      <!-- Filtros -->
+      <a-card class="mb-4">
+        <a-row :gutter="16">
+          <a-col :span="6">
+            <a-form-item label="Estado">
+              <a-select v-model:value="filtroEstado" placeholder="Filtrar por estado" allow-clear>
+                <a-select-option value="Pendiente">Pendiente</a-select-option>
+                <a-select-option value="Pagado">Pagado</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="6">
+            <a-form-item label="Forma de Pago">
+              <a-select v-model:value="filtroFormaPago" placeholder="Filtrar por forma de pago" allow-clear>
+                <a-select-option value="Débito">Débito</a-select-option>
+                <a-select-option value="Efectivo">Efectivo</a-select-option>
+                <a-select-option value="Transferencia">Transferencia</a-select-option>
+                <a-select-option value="Crédito">Crédito</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="8">
+            <a-form-item label="Rango de Fechas">
+              <a-range-picker 
+                v-model:value="rangoFechas" 
+                format="DD/MM/YYYY"
+                style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="4" class="flex items-end">
+            <a-space>
+              <a-button type="primary" @click="aplicarFiltros">
+                <template #icon><SearchOutlined /></template>
+                Buscar
+              </a-button>
+              <a-button @click="limpiarFiltros">
+                Limpiar
+              </a-button>
+            </a-space>
+          </a-col>
+        </a-row>
+      </a-card>
+      
       <a-card>
         <a-table
           :columns="columns"
@@ -244,8 +291,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   UploadOutlined,
-  EyeOutlined
+  EyeOutlined,
+  SearchOutlined
 } from '@ant-design/icons-vue'
+import dayjs from 'dayjs'
 
 const cuotas = ref([])
 const showModal = ref(false)
@@ -259,6 +308,11 @@ const isSearching = ref(false)
 const alumnosEncontrados = ref([])
 const searchTimeout = ref(null)
 const fileList = ref([])
+
+// Filtros
+const filtroEstado = ref(null)
+const filtroFormaPago = ref(null)
+const rangoFechas = ref(null)
 
 const pagination = ref({
   currentPage: 0,
@@ -351,11 +405,36 @@ const handleRemoveFile = () => {
 const loadCuotas = async () => {
   loading.value = true
   try {
+    // Construir parámetros de filtro
+    const params = {
+      page: pagination.value.currentPage,
+      size: pagination.value.size,
+      sort: 'fechaPago',
+      direction: 'desc'
+    }
+    
+    if (filtroEstado.value) {
+      params.estado = filtroEstado.value
+    }
+    
+    if (filtroFormaPago.value) {
+      params.formaPago = filtroFormaPago.value
+    }
+    
+    if (rangoFechas.value && rangoFechas.value.length === 2) {
+      params.fechaInicio = dayjs(rangoFechas.value[0]).format('YYYY-MM-DD')
+      params.fechaFin = dayjs(rangoFechas.value[1]).format('YYYY-MM-DD')
+    }
+    
     const response = await cuotaService.getAll(
-      pagination.value.currentPage,
-      pagination.value.size,
-      'fechaPago',
-      'desc'
+      params.page,
+      params.size,
+      params.sort,
+      params.direction,
+      params.estado,
+      params.formaPago,
+      params.fechaInicio,
+      params.fechaFin
     )
     cuotas.value = response.content
     pagination.value.totalPages = response.totalPages
@@ -498,6 +577,19 @@ const viewComprobante = (filename) => {
 
 const getComprobanteUrl = (filename) => {
   return `http://localhost:8080/uploads/comprobantes/${filename}`
+}
+
+const aplicarFiltros = () => {
+  pagination.value.currentPage = 0
+  loadCuotas()
+}
+
+const limpiarFiltros = () => {
+  filtroEstado.value = null
+  filtroFormaPago.value = null
+  rangoFechas.value = null
+  pagination.value.currentPage = 0
+  loadCuotas()
 }
 
 onMounted(() => {

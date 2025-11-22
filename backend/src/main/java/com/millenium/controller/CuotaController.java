@@ -42,11 +42,23 @@ public class CuotaController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaPago") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String formaPago,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
         
         Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<Cuota> cuotasPage = cuotaService.findAll(pageable);
+        
+        Page<Cuota> cuotasPage;
+        
+        // Aplicar filtros si están presentes
+        if (estado != null || formaPago != null || fechaInicio != null || fechaFin != null) {
+            cuotasPage = cuotaService.findByFilters(estado, formaPago, fechaInicio, fechaFin, pageable);
+        } else {
+            cuotasPage = cuotaService.findAll(pageable);
+        }
         
         Map<String, Object> response = new HashMap<>();
         response.put("content", cuotasPage.getContent());

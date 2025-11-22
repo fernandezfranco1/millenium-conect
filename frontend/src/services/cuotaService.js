@@ -3,10 +3,15 @@ import axios from 'axios'
 const API_URL = '/api/cuotas'
 
 export default {
-  async getAll(page = 0, size = 10, sortBy = 'fechaPago', sortDir = 'desc') {
-    const response = await axios.get(API_URL, {
-      params: { page, size, sortBy, sortDir }
-    })
+  async getAll(page = 0, size = 10, sortBy = 'fechaPago', sortDir = 'desc', estado = null, formaPago = null, fechaInicio = null, fechaFin = null) {
+    const params = { page, size, sortBy, sortDir }
+    
+    if (estado) params.estado = estado
+    if (formaPago) params.formaPago = formaPago
+    if (fechaInicio) params.fechaInicio = fechaInicio
+    if (fechaFin) params.fechaFin = fechaFin
+    
+    const response = await axios.get(API_URL, { params })
     return response.data
   },
   
