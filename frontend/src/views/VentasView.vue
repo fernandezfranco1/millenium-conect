@@ -92,7 +92,8 @@
       width="600px"
       ok-text="Guardar"
       cancel-text="Cancelar"
-      :ok-button-props="{ disabled: isCantidadInvalida }"
+      :ok-button-props="{ disabled: isCantidadInvalida, loading: saving }"
+      :cancel-button-props="{ disabled: saving }"
       @ok="saveVenta"
       @cancel="closeModal"
     >
@@ -222,6 +223,7 @@ const productosEncontrados = ref([])
 const searchTimeout = ref(null)
 const stockDisponible = ref(null)
 const rangoFechas = ref(null)
+const saving = ref(false)
 
 const form = ref({
   producto: null,
@@ -371,11 +373,15 @@ const resetForm = () => {
 
 const closeModal = () => {
   showModal.value = false
+  saving.value = false
   resetForm()
 }
 
 const saveVenta = async () => {
+  if (saving.value) return
+  
   try {
+    saving.value = true
     await formRef.value.validate()
     
     const ventaData = {
@@ -414,6 +420,8 @@ const saveVenta = async () => {
       })
     }
     console.error('Error al guardar:', error)
+  } finally {
+    saving.value = false
   }
 }
 

@@ -22,6 +22,11 @@ public class VentaService {
     @Autowired
     private ProductoRepository productoRepository;
     
+    @Autowired
+    private EmailService emailService;
+    
+    private static final int STOCK_MINIMO = 3;
+    
     public List<Venta> findAll() {
         return ventaRepository.findAll();
     }
@@ -45,6 +50,15 @@ public class VentaService {
             // Descontar del stock
             producto.setStock(producto.getStock() - venta.getCantidad());
             productoRepository.save(producto);
+            
+            // Verificar si el stock quedó bajo y enviar alerta
+            if (producto.getStock() < STOCK_MINIMO) {
+                try {
+                    emailService.sendLowStockAlert(producto);
+                } catch (Exception e) {
+                    System.err.println("Error al enviar alerta de stock: " + e.getMessage());
+                }
+            }
             
             // Asignar el producto completo a la venta
             venta.setProducto(producto);
