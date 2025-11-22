@@ -1,6 +1,8 @@
 package com.millenium.service;
 
+import com.millenium.model.Producto;
 import com.millenium.model.Venta;
+import com.millenium.repository.ProductoRepository;
 import com.millenium.repository.VentaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,9 @@ public class VentaService {
     @Autowired
     private VentaRepository ventaRepository;
     
+    @Autowired
+    private ProductoRepository productoRepository;
+    
     public List<Venta> findAll() {
         return ventaRepository.findAll();
     }
@@ -26,11 +31,41 @@ public class VentaService {
     }
     
     public Venta save(Venta venta) {
+        // Si es una venta nueva, descontar del stock
+        if (venta.getIdVenta() == null) {
+            // Cargar el producto desde la base de datos
+            Producto producto = productoRepository.findById(venta.getProducto().getIdProducto())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            // Verificar que hay stock suficiente
+            if (producto.getStock() < venta.getCantidad()) {
+                throw new RuntimeException("Stock insuficiente. Stock disponible: " + producto.getStock());
+            }
+            
+            // Descontar del stock
+            producto.setStock(producto.getStock() - venta.getCantidad());
+            productoRepository.save(producto);
+            
+            // Asignar el producto completo a la venta
+            venta.setProducto(producto);
+        }
+        
         return ventaRepository.save(venta);
     }
     
     public void deleteById(Long id) {
-        ventaRepository.deleteById(id);
+        // Al eliminar una venta, devolver el stock al producto
+        Optional<Venta> ventaOpt = ventaRepository.findById(id);
+        if (ventaOpt.isPresent()) {
+            Venta venta = ventaOpt.get();
+            Producto producto = venta.getProducto();
+            
+            // Devolver el stock
+            producto.setStock(producto.getStock() + venta.getCantidad());
+            productoRepository.save(producto);
+            
+            ventaRepository.deleteById(id);
+        }
     }
     
     public List<Venta> findByRangoFechas(LocalDate inicio, LocalDate fin) {

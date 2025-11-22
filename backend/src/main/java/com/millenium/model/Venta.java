@@ -21,7 +21,7 @@ public class Venta {
     @Column(name = "id_venta")
     private Long idVenta;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_producto", nullable = false)
     @NotNull(message = "El producto es obligatorio")
     private Producto producto;

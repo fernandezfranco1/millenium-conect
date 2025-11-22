@@ -101,6 +101,8 @@
       v-model:open="showModal"
       :title="editingCuota ? 'Editar Cuota' : 'Nueva Cuota'"
       width="700px"
+      ok-text="Guardar"
+      cancel-text="Cancelar"
       @ok="saveCuota"
       @cancel="closeModal"
     >
@@ -233,6 +235,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { notification } from 'ant-design-vue'
 import cuotaService from '@/services/cuotaService'
 import alumnoService from '@/services/alumnoService'
 import AppLayout from '@/components/AppLayout.vue'
@@ -423,11 +426,32 @@ const saveCuota = async () => {
       await cuotaService.create(cuotaData)
     }
     
+    
+    if (editingCuota.value) {
+      notification.success({
+        message: 'Cuota actualizada',
+        description: 'La cuota se actualizó correctamente',
+        duration: 3
+      })
+    } else {
+      notification.success({
+        message: 'Cuota registrada',
+        description: 'La cuota se registró correctamente',
+        duration: 3
+      })
+    }
+    
     closeModal()
     loadCuotas()
   } catch (error) {
+    if (error.response) {
+      notification.error({
+        message: 'Error del servidor',
+        description: error.response?.data?.error || 'Error al guardar la cuota',
+        duration: 3
+      })
+    }
     console.error('Error al guardar:', error)
-    error.value = error.response?.data?.error || 'Error al guardar la cuota'
   }
 }
 
@@ -451,9 +475,19 @@ const editCuota = (cuota) => {
 const deleteCuota = async (id) => {
   try {
     await cuotaService.delete(id)
+    notification.success({
+      message: 'Cuota eliminada',
+      description: 'La cuota fue eliminada correctamente',
+      duration: 3
+    })
     loadCuotas()
   } catch (error) {
     console.error('Error al eliminar:', error)
+    notification.error({
+      message: 'Error',
+      description: 'No se pudo eliminar la cuota',
+      duration: 3
+    })
   }
 }
 

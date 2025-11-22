@@ -44,18 +44,22 @@
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
-                <a-button type="link" @click="editAlumno(record)">
-                  <EditOutlined /> Editar
-                </a-button>
+                <a-tooltip title="Editar">
+                  <a-button type="primary" style="background-color: #52c41a" @click="editAlumno(record)">
+                    <EditOutlined />
+                  </a-button>
+                </a-tooltip>
                 <a-popconfirm
                   title="¿Estás seguro de eliminar este alumno?"
                   ok-text="Sí"
                   cancel-text="No"
                   @confirm="deleteAlumno(record.idAlumno)"
                 >
-                  <a-button type="link" danger>
-                    <DeleteOutlined /> Eliminar
-                  </a-button>
+                  <a-tooltip title="Eliminar">
+                    <a-button type="primary" danger>
+                      <DeleteOutlined />
+                    </a-button>
+                  </a-tooltip>
                 </a-popconfirm>
               </a-space>
             </template>
@@ -87,6 +91,8 @@
       v-model:open="showModal"
       :title="editingAlumno ? 'Editar Alumno' : 'Nuevo Alumno'"
       width="800px"
+      ok-text="Guardar"
+      cancel-text="Cancelar"
       @ok="saveAlumno"
       @cancel="closeModal"
     >
@@ -227,6 +233,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { notification } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import alumnoService from '@/services/alumnoService'
@@ -359,15 +366,31 @@ const saveAlumno = async () => {
     
     if (editingAlumno.value) {
       await alumnoService.update(editingAlumno.value.idAlumno, alumnoData)
+      notification.success({
+        message: 'Alumno actualizado',
+        description: 'El alumno se actualizó correctamente',
+        duration: 3
+      })
     } else {
       await alumnoService.create(alumnoData)
+      notification.success({
+        message: 'Alumno creado',
+        description: 'El alumno se creó correctamente',
+        duration: 3
+      })
     }
     
     closeModal()
     loadAlumnos()
   } catch (error) {
+    if (error.response) {
+      notification.error({
+        message: 'Error del servidor',
+        description: error.response?.data?.message || 'Error al guardar el alumno',
+        duration: 3
+      })
+    }
     console.error('Error al guardar:', error)
-    error.value = 'Error al guardar el alumno'
   }
 }
 
@@ -380,9 +403,19 @@ const editAlumno = (alumno) => {
 const deleteAlumno = async (id) => {
   try {
     await alumnoService.delete(id)
+    notification.success({
+      message: 'Alumno eliminado',
+      description: 'El alumno fue eliminado correctamente',
+      duration: 3
+    })
     loadAlumnos()
   } catch (error) {
     console.error('Error al eliminar:', error)
+    notification.error({
+      message: 'Error',
+      description: 'No se pudo eliminar el alumno',
+      duration: 3
+    })
   }
 }
 
@@ -390,3 +423,12 @@ onMounted(() => {
   loadAlumnos()
 })
 </script>
+
+<style scoped>
+.ant-btn {
+  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>

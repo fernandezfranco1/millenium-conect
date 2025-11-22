@@ -31,18 +31,22 @@
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
-                <a-button type="link" @click="editAsistencia(record)">
-                  <EditOutlined /> Editar
-                </a-button>
+                <a-tooltip title="Editar">
+                  <a-button type="primary" style="background-color: #52c41a" @click="editAsistencia(record)">
+                    <EditOutlined />
+                  </a-button>
+                </a-tooltip>
                 <a-popconfirm
                   title="¿Estás seguro de eliminar esta asistencia?"
                   ok-text="Sí"
                   cancel-text="No"
                   @confirm="deleteAsistencia(record.idAsistencia)"
                 >
-                  <a-button type="link" danger>
-                    <DeleteOutlined /> Eliminar
-                  </a-button>
+                  <a-tooltip title="Eliminar">
+                    <a-button type="primary" danger>
+                      <DeleteOutlined />
+                    </a-button>
+                  </a-tooltip>
                 </a-popconfirm>
               </a-space>
             </template>
@@ -56,6 +60,8 @@
       v-model:open="showModal"
       :title="editingAsistencia ? 'Editar Asistencia' : 'Nueva Asistencia'"
       width="600px"
+      ok-text="Guardar"
+      cancel-text="Cancelar"
       @ok="saveAsistencia"
       @cancel="closeModal"
     >
@@ -118,6 +124,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { notification } from 'ant-design-vue'
 import asistenciaService from '@/services/asistenciaService'
 import alumnoService from '@/services/alumnoService'
 import AppLayout from '@/components/AppLayout.vue'
@@ -229,15 +236,31 @@ const saveAsistencia = async () => {
     
     if (editingAsistencia.value) {
       await asistenciaService.update(editingAsistencia.value.idAsistencia, asistenciaData)
+      notification.success({
+        message: 'Asistencia actualizada',
+        description: 'La asistencia se actualizó correctamente',
+        duration: 3
+      })
     } else {
       await asistenciaService.create(asistenciaData)
+      notification.success({
+        message: 'Asistencia registrada',
+        description: 'La asistencia se registró correctamente',
+        duration: 3
+      })
     }
     
     closeModal()
     loadAsistencias()
   } catch (error) {
+    if (error.response) {
+      notification.error({
+        message: 'Error del servidor',
+        description: error.response?.data?.message || 'Error al guardar la asistencia',
+        duration: 3
+      })
+    }
     console.error('Error al guardar:', error)
-    error.value = 'Error al guardar la asistencia'
   }
 }
 
@@ -258,9 +281,19 @@ const editAsistencia = (asistencia) => {
 const deleteAsistencia = async (id) => {
   try {
     await asistenciaService.delete(id)
+    notification.success({
+      message: 'Asistencia eliminada',
+      description: 'La asistencia fue eliminada correctamente',
+      duration: 3
+    })
     loadAsistencias()
   } catch (error) {
     console.error('Error al eliminar:', error)
+    notification.error({
+      message: 'Error',
+      description: 'No se pudo eliminar la asistencia',
+      duration: 3
+    })
   }
 }
 
@@ -268,3 +301,12 @@ onMounted(() => {
   loadAsistencias()
 })
 </script>
+
+<style scoped>
+.ant-btn {
+  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
