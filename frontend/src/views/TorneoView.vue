@@ -112,17 +112,40 @@
                   <div class="round-title">{{ getRoundName(rondaIndex) }}</div>
                   <div class="matches">
                     <div v-for="(match, matchIndex) in ronda" :key="matchIndex" class="match">
-                      <div class="match-participant" :class="{ winner: match.winner === 1 }">
+                      <div 
+                        class="match-participant" 
+                        :class="{ 
+                          winner: match.winner === 1,
+                          clickable: match.participant1 && match.participant2 && !match.winner,
+                          disabled: !match.participant1 || match.participant2 === 'BYE'
+                        }"
+                        @click="seleccionarGanador(rondaIndex, matchIndex, 1)"
+                      >
                         <span class="participant-name">{{ match.participant1 || 'TBD' }}</span>
-                        <span class="participant-score">{{ match.score1 !== null ? match.score1 : '-' }}</span>
+                        <a-tag v-if="match.winner === 1" color="green" class="ml-2">Ganador</a-tag>
                       </div>
-                      <div class="match-participant" :class="{ winner: match.winner === 2 }">
+                      <div 
+                        class="match-participant" 
+                        :class="{ 
+                          winner: match.winner === 2,
+                          clickable: match.participant1 && match.participant2 && match.participant2 !== 'BYE' && !match.winner,
+                          disabled: match.participant2 === 'BYE' || !match.participant2
+                        }"
+                        @click="seleccionarGanador(rondaIndex, matchIndex, 2)"
+                      >
                         <span class="participant-name">{{ match.participant2 || 'BYE' }}</span>
-                        <span class="participant-score">{{ match.score2 !== null ? match.score2 : '-' }}</span>
+                        <a-tag v-if="match.winner === 2" color="green" class="ml-2">Ganador</a-tag>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              <!-- Mostrar campeón -->
+              <div v-if="campeon" class="champion-announcement">
+                <TrophyOutlined class="trophy-icon" />
+                <h2 class="champion-title">¡Campeón del Torneo!</h2>
+                <div class="champion-name">{{ campeon }}</div>
               </div>
             </div>
           </a-card>
@@ -153,6 +176,7 @@ const isSearching = ref(false)
 const searchTimeout = ref(null)
 const bracketGenerado = ref(false)
 const bracket = ref([])
+const campeon = ref(null)
 
 const alumnosOptions = computed(() => {
   return alumnosEncontrados.value.map(alumno => ({
@@ -289,9 +313,63 @@ const getRoundName = (index) => {
   return `Ronda ${index + 1}`
 }
 
+const seleccionarGanador = (rondaIndex, matchIndex, participante) => {
+  const match = bracket.value[rondaIndex][matchIndex]
+  
+  // No permitir selección si ya hay ganador o si no hay ambos participantes
+  if (match.winner) return
+  if (!match.participant1 || !match.participant2) return
+  if (match.participant2 === 'BYE') {
+    // Auto-avanzar si es BYE
+    avanzarGanador(rondaIndex, matchIndex, match.participant1)
+    return
+  }
+  
+  // Marcar ganador
+  match.winner = participante
+  
+  // Obtener el nombre del ganador
+  const ganador = participante === 1 ? match.participant1 : match.participant2
+  
+  // Avanzar a la siguiente ronda
+  avanzarGanador(rondaIndex, matchIndex, ganador)
+  
+  notification.success({
+    message: 'Ganador seleccionado',
+    description: `${ganador} avanza a la siguiente ronda`,
+    duration: 2
+  })
+}
+
+const avanzarGanador = (rondaIndex, matchIndex, ganador) => {
+  // Si es la última ronda, es el campeón
+  if (rondaIndex === bracket.value.length - 1) {
+    campeon.value = ganador
+    notification.success({
+      message: '¡Tenemos campeón!',
+      description: `${ganador} es el ganador del torneo`,
+      duration: 5
+    })
+    return
+  }
+  
+  // Calcular posición en la siguiente ronda
+  const siguienteRonda = rondaIndex + 1
+  const siguienteMatchIndex = Math.floor(matchIndex / 2)
+  const posicionEnMatch = matchIndex % 2 === 0 ? 1 : 2
+  
+  // Asignar ganador a la siguiente ronda
+  if (posicionEnMatch === 1) {
+    bracket.value[siguienteRonda][siguienteMatchIndex].participant1 = ganador
+  } else {
+    bracket.value[siguienteRonda][siguienteMatchIndex].participant2 = ganador
+  }
+}
+
 const resetearTorneo = () => {
   bracketGenerado.value = false
   bracket.value = []
+  campeon.value = null
 }
 
 const imprimirBracket = () => {
@@ -349,15 +427,31 @@ const imprimirBracket = () => {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   transition: all 0.3s;
+  position: relative;
 }
 
 .match-participant:last-child {
   border-bottom: none;
 }
 
+.match-participant.clickable {
+  cursor: pointer;
+}
+
+.match-participant.clickable:hover {
+  background: #f0f7ff;
+  transform: translateX(2px);
+}
+
 .match-participant.winner {
-  background: #e6f7ff;
+  background: #f6ffed;
+  border-left: 4px solid #52c41a;
   font-weight: 600;
+}
+
+.match-participant.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .participant-name {
@@ -372,6 +466,49 @@ const imprimirBracket = () => {
   color: #1890ff;
   min-width: 30px;
   text-align: center;
+}
+
+.champion-announcement {
+  margin-top: 40px;
+  padding: 40px;
+  text-align: center;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  animation: celebration 0.6s ease-in-out;
+}
+
+@keyframes celebration {
+  0% { transform: scale(0.9); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.trophy-icon {
+  font-size: 64px;
+  color: #d48806;
+  margin-bottom: 16px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.champion-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ad6800;
+  margin-bottom: 16px;
+}
+
+.champion-name {
+  font-size: 36px;
+  font-weight: bold;
+  color: #873800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
 /* Estilos para impresión */
