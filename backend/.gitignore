@@ -1,0 +1,17 @@
+# Excluir archivos específicos de Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Archivos de logs
+*.log
+
+# Archivos del IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+
+# Archivos de configuración sensibles
+application-prod.properties
