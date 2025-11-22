@@ -38,18 +38,27 @@
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
-                <a-button type="link" @click="editCuota(record)">
-                  <EditOutlined /> Editar
-                </a-button>
+                <a-tooltip title="Ver comprobante" v-if="record.comprobante">
+                  <a-button type="primary" @click="viewComprobante(record.comprobante)">
+                    <EyeOutlined />
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip title="Editar">
+                  <a-button type="primary" style="background-color: #52c41a" @click="editCuota(record)">
+                    <EditOutlined />
+                  </a-button>
+                </a-tooltip>
                 <a-popconfirm
                   title="¿Estás seguro de eliminar esta cuota?"
                   ok-text="Sí"
                   cancel-text="No"
                   @confirm="deleteCuota(record.idCuota)"
                 >
-                  <a-button type="link" danger>
-                    <DeleteOutlined /> Eliminar
-                  </a-button>
+                  <a-tooltip title="Eliminar">
+                    <a-button type="primary" danger>
+                      <DeleteOutlined />
+                    </a-button>
+                  </a-tooltip>
                 </a-popconfirm>
               </a-space>
             </template>
@@ -74,6 +83,17 @@
           />
         </div>
       </a-card>
+    </div>
+
+    <!-- Visor de Imagen Oculto -->
+    <div style="display: none;">
+      <a-image
+        :preview="{
+          visible: previewVisible,
+          onVisibleChange: (visible) => previewVisible = visible,
+        }"
+        :src="previewImage"
+      />
     </div>
     
     <!-- Modal -->
@@ -207,6 +227,7 @@
         <a-alert v-if="error" :message="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
       </a-form>
     </a-modal>
+
   </app-layout>
 </template>
 
@@ -219,11 +240,14 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  UploadOutlined
+  UploadOutlined,
+  EyeOutlined
 } from '@ant-design/icons-vue'
 
 const cuotas = ref([])
 const showModal = ref(false)
+const previewVisible = ref(false)
+const previewImage = ref('')
 const editingCuota = ref(null)
 const error = ref('')
 const loading = ref(false)
@@ -433,7 +457,25 @@ const deleteCuota = async (id) => {
   }
 }
 
+const viewComprobante = (filename) => {
+  previewImage.value = getComprobanteUrl(filename)
+  previewVisible.value = true
+}
+
+const getComprobanteUrl = (filename) => {
+  return `http://localhost:8080/uploads/comprobantes/${filename}`
+}
+
 onMounted(() => {
   loadCuotas()
 })
 </script>
+
+<style scoped>
+.ant-btn {
+  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
