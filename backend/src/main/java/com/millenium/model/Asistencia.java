@@ -25,6 +25,11 @@ public class Asistencia {
     @NotNull(message = "El alumno es obligatorio")
     private Alumno alumno;
     
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_clase", nullable = false)
+    @NotNull(message = "La clase es obligatoria")
+    private Clase clase;
+    
     @NotBlank(message = "El estado es obligatorio")
     @Size(max = 20)
     @Column(nullable = false, length = 20)

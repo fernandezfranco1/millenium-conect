@@ -13,16 +13,64 @@
         </template>
       </a-page-header>
       
+      <a-card class="mb-6" style="max-width: 900px;">
+        <a-row :gutter="16" align="middle">
+          <a-col :span="6">
+            <a-select
+              v-model:value="filtroClase"
+              placeholder="Filtrar por clase"
+              style="width: 100%"
+              allowClear
+              :options="clasesOptions"
+            />
+          </a-col>
+          <a-col :span="5">
+            <a-select
+              v-model:value="filtroEstado"
+              placeholder="Filtrar por estado"
+              style="width: 100%"
+              allowClear
+            >
+              <a-select-option value="Presente">Presente</a-select-option>
+              <a-select-option value="Ausente">Ausente</a-select-option>
+              <a-select-option value="Tardanza">Tardanza</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="7">
+            <a-range-picker
+              v-model:value="rangoFechas"
+              format="DD/MM/YYYY"
+              placeholder="['Fecha inicio', 'Fecha fin']"
+              style="width: 100%"
+            />
+          </a-col>
+          <a-col :span="6">
+            <a-space>
+              <a-button type="primary" @click="aplicarFiltros">
+                <template #icon><SearchOutlined /></template>
+                Filtrar
+              </a-button>
+              <a-button type="default" @click="limpiarFiltros">
+                Limpiar
+              </a-button>
+            </a-space>
+          </a-col>
+        </a-row>
+      </a-card>
+      
       <a-card>
         <a-table
           :columns="columns"
-          :data-source="asistencias"
+          :data-source="asistenciasFiltradas"
           :loading="loading"
           :row-key="record => record.idAsistencia"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'alumno'">
               {{ record.alumno?.nombre }} {{ record.alumno?.apellido }}
+            </template>
+            <template v-else-if="column.key === 'clase'">
+              {{ record.clase?.tipo }} - {{ formatHorario(record.clase?.horario) }}
             </template>
             <template v-else-if="column.key === 'estado'">
               <a-tag :color="getEstadoColor(record.estado)">
@@ -71,19 +119,30 @@
         ref="formRef"
       >
         <a-form-item
+          label="Clase"
+          name="clase"
+          :rules="[{ required: true, message: 'La clase es obligatoria' }]"
+        >
+          <a-select
+            v-model:value="form.clase"
+            placeholder="Seleccionar clase"
+            :options="clasesOptions"
+            @change="onClaseChange"
+          />
+        </a-form-item>
+        
+        <a-form-item
           label="Alumno"
           name="alumno"
           :rules="[{ required: true, message: 'Debes seleccionar un alumno' }]"
         >
           <a-select
             v-model:value="form.alumno"
+            placeholder="Seleccionar alumno de la clase"
+            :options="alumnosDeClaseOptions"
+            :disabled="!form.clase"
             show-search
-            placeholder="Buscar alumno..."
-            :filter-option="false"
-            :not-found-content="isSearching ? undefined : 'No se encontraron alumnos'"
-            @search="searchAlumnos"
-            :loading="isSearching"
-            :options="alumnosOptions"
+            :filter-option="filterAlumno"
           >
             <template #notFoundContent v-if="isSearching">
               <a-spin size="small" />
@@ -127,14 +186,17 @@ import { ref, onMounted, computed } from 'vue'
 import { notification } from 'ant-design-vue'
 import asistenciaService from '@/services/asistenciaService'
 import alumnoService from '@/services/alumnoService'
+import claseService from '@/services/claseService'
 import AppLayout from '@/components/AppLayout.vue'
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  SearchOutlined
 } from '@ant-design/icons-vue'
 
 const asistencias = ref([])
+const asistenciasFiltradas = ref([])
 const showModal = ref(false)
 const editingAsistencia = ref(null)
 const error = ref('')
@@ -143,8 +205,14 @@ const formRef = ref()
 const isSearching = ref(false)
 const alumnosEncontrados = ref([])
 const searchTimeout = ref(null)
+const clases = ref([])
+const claseSeleccionada = ref(null)
+const filtroClase = ref(null)
+const filtroEstado = ref(null)
+const rangoFechas = ref(null)
 
 const form = ref({
+  clase: null,
   alumno: null,
   estado: 'Presente',
   fechaAsistencia: new Date().toISOString().split('T')[0]
@@ -152,7 +220,8 @@ const form = ref({
 
 const columns = [
   { title: 'Alumno', key: 'alumno' },
-  { title: 'Estado', key: 'estado', dataIndex: 'estado' },
+  { title: 'Clase', key: 'clase' },
+  { title: 'Estado', key: 'estado' },
   { title: 'Fecha', dataIndex: 'fechaAsistencia' },
   { title: 'Acciones', key: 'actions', align: 'center' }
 ]
@@ -164,6 +233,29 @@ const alumnosOptions = computed(() => {
   }))
 })
 
+const clasesOptions = computed(() => {
+  return clases.value.map(clase => ({
+    label: `${clase.instructor} ${clase.apellidoInstructor} - ${formatHorario(clase.horario)} (${clase.tipo})`,
+    value: clase.idClase
+  }))
+})
+
+const alumnosDeClaseOptions = computed(() => {
+  if (!claseSeleccionada.value || !claseSeleccionada.value.alumnos) {
+    return []
+  }
+  
+  return claseSeleccionada.value.alumnos.map(alumno => ({
+    label: `${alumno.nombre} ${alumno.apellido} - DNI: ${alumno.dni}`,
+    value: alumno.idAlumno
+  }))
+})
+
+const formatHorario = (horario) => {
+  if (!horario) return '-'
+  return horario.substring(0, 5)
+}
+
 const getEstadoColor = (estado) => {
   const colors = {
     'Presente': 'green',
@@ -171,6 +263,32 @@ const getEstadoColor = (estado) => {
     'Tardanza': 'orange'
   }
   return colors[estado] || 'default'
+}
+
+const filterAlumno = (input, option) => {
+  return option.label.toLowerCase().includes(input.toLowerCase())
+}
+
+const onClaseChange = async (claseId) => {
+  // Resetear alumno seleccionado cuando cambia la clase
+  form.value.alumno = null
+  
+  if (!claseId) {
+    claseSeleccionada.value = null
+    return
+  }
+  
+  // Buscar la clase completa con sus alumnos
+  try {
+    claseSeleccionada.value = await claseService.getById(claseId)
+  } catch (error) {
+    console.error('Error al cargar clase:', error)
+    notification.error({
+      message: 'Error',
+      description: 'No se pudo cargar la información de la clase',
+      duration: 3
+    })
+  }
 }
 
 const searchAlumnos = async (value) => {
@@ -201,6 +319,7 @@ const loadAsistencias = async () => {
   loading.value = true
   try {
     asistencias.value = await asistenciaService.getAll()
+    asistenciasFiltradas.value = asistencias.value
   } catch (error) {
     console.error('Error al cargar asistencias:', error)
   } finally {
@@ -208,13 +327,55 @@ const loadAsistencias = async () => {
   }
 }
 
+const aplicarFiltros = () => {
+  let filtered = [...asistencias.value]
+  
+  // Filtrar por clase
+  if (filtroClase.value) {
+    filtered = filtered.filter(a => a.clase?.idClase === filtroClase.value)
+  }
+  
+  // Filtrar por estado
+  if (filtroEstado.value) {
+    filtered = filtered.filter(a => a.estado === filtroEstado.value)
+  }
+  
+  // Filtrar por rango de fechas
+  if (rangoFechas.value && rangoFechas.value[0] && rangoFechas.value[1]) {
+    const inicio = rangoFechas.value[0].format('YYYY-MM-DD')
+    const fin = rangoFechas.value[1].format('YYYY-MM-DD')
+    filtered = filtered.filter(a => {
+      return a.fechaAsistencia >= inicio && a.fechaAsistencia <= fin
+    })
+  }
+  
+  asistenciasFiltradas.value = filtered
+}
+
+const limpiarFiltros = () => {
+  filtroClase.value = null
+  filtroEstado.value = null
+  rangoFechas.value = null
+  asistenciasFiltradas.value = asistencias.value
+}
+
+const loadClases = async () => {
+  try {
+    clases.value = await claseService.getAll()
+  } catch (error) {
+    console.error('Error al cargar clases:', error)
+  }
+}
+
 const resetForm = () => {
   form.value = {
+    clase: null,
     alumno: null,
     estado: 'Presente',
     fechaAsistencia: new Date().toISOString().split('T')[0]
   }
   alumnosEncontrados.value = []
+  claseSeleccionada.value = null
   error.value = ''
 }
 
@@ -230,6 +391,7 @@ const saveAsistencia = async () => {
     
     const asistenciaData = {
       alumno: { idAlumno: form.value.alumno },
+      clase: { idClase: form.value.clase },
       estado: form.value.estado,
       fechaAsistencia: form.value.fechaAsistencia
     }
@@ -264,13 +426,25 @@ const saveAsistencia = async () => {
   }
 }
 
-const editAsistencia = (asistencia) => {
+const editAsistencia = async (asistencia) => {
   editingAsistencia.value = asistencia
+  
+  // Cargar la clase con sus alumnos
+  if (asistencia.clase?.idClase) {
+    try {
+      claseSeleccionada.value = await claseService.getById(asistencia.clase.idClase)
+    } catch (error) {
+      console.error('Error al cargar clase:', error)
+    }
+  }
+  
   form.value = {
+    clase: asistencia.clase?.idClase,
     alumno: asistencia.alumno?.idAlumno,
     estado: asistencia.estado,
     fechaAsistencia: asistencia.fechaAsistencia
   }
+  
   // Agregar el alumno actual a las opciones
   if (asistencia.alumno) {
     alumnosEncontrados.value = [asistencia.alumno]
@@ -299,6 +473,7 @@ const deleteAsistencia = async (id) => {
 
 onMounted(() => {
   loadAsistencias()
+  loadClases()
 })
 </script>
 
