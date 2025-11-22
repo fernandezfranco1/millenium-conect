@@ -48,6 +48,12 @@ const routes = [
     name: 'Eventos',
     component: () => import('@/views/EventosView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/clases',
+    name: 'Clases',
+    component: () => import('@/views/ClasesView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

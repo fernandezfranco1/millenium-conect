@@ -38,6 +38,18 @@
           </a-col>
           
           <a-col :xs="24" :sm="12" :lg="8">
+            <a-card hoverable @click="router.push('/clases')" class="module-card">
+              <div class="card-icon-wrapper bg-gradient-to-br from-teal-500 to-teal-600">
+                <TeamOutlined class="card-icon" />
+              </div>
+              <div class="card-content">
+                <h3 class="card-title">Clases</h3>
+                <p class="card-description">Administrar clases y horarios</p>
+              </div>
+            </a-card>
+          </a-col>
+          
+          <a-col :xs="24" :sm="12" :lg="8">
             <a-card hoverable @click="router.push('/asistencias')" class="module-card">
               <div class="card-icon-wrapper bg-gradient-to-br from-green-500 to-green-600">
                 <CheckCircleOutlined class="card-icon" />
@@ -112,7 +124,8 @@ import {
   DollarOutlined,
   ShoppingOutlined,
   ShoppingCartOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  TeamOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
