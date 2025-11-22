@@ -13,20 +13,13 @@
         </template>
       </a-page-header>
       
-      <a-card class="mb-6">
-        <a-row :gutter="16">
-          <a-col :span="8">
-            <a-date-picker
-              v-model:value="filtroFechaInicio"
-              placeholder="Fecha inicio"
-              style="width: 100%"
-              @change="filtrarPorFechas"
-            />
-          </a-col>
-          <a-col :span="8">
-            <a-date-picker
-              v-model:value="filtroFechaFin"
-              placeholder="Fecha fin"
+      <a-card class="mb-6" style="max-width: 800px;">
+        <a-row :gutter="16" align="middle">
+          <a-col :span="16">
+            <a-range-picker
+              v-model:value="rangoFechas"
+              format="DD/MM/YYYY"
+              placeholder="['Fecha inicio', 'Fecha fin']"
               style="width: 100%"
               @change="filtrarPorFechas"
             />
@@ -99,6 +92,7 @@
       width="600px"
       ok-text="Guardar"
       cancel-text="Cancelar"
+      :ok-button-props="{ disabled: isCantidadInvalida }"
       @ok="saveVenta"
       @cancel="closeModal"
     >
@@ -139,9 +133,10 @@
               <a-input-number
                 v-model:value="form.cantidad"
                 :min="1"
-                :max="stockDisponible"
+                :disabled="!form.producto"
                 style="width: 100%"
                 @change="calcularTotal"
+                placeholder="Seleccione un producto primero"
               />
             </a-form-item>
             <div v-if="stockDisponible !== null" class="text-sm text-gray-500 -mt-2">
@@ -226,8 +221,7 @@ const isSearching = ref(false)
 const productosEncontrados = ref([])
 const searchTimeout = ref(null)
 const stockDisponible = ref(null)
-const filtroFechaInicio = ref(null)
-const filtroFechaFin = ref(null)
+const rangoFechas = ref(null)
 
 const form = ref({
   producto: null,
@@ -263,6 +257,12 @@ const productosOptions = computed(() => {
     label: `${producto.nombre}${producto.marca ? ' - ' + producto.marca : ''} (Stock: ${producto.stock})`,
     value: producto.idProducto
   }))
+})
+
+const isCantidadInvalida = computed(() => {
+  return stockDisponible.value !== null && 
+         form.value.cantidad && 
+         form.value.cantidad > stockDisponible.value
 })
 
 const formatCurrency = (value) => {
@@ -304,6 +304,7 @@ const onProductoChange = (productoId) => {
   if (producto) {
     stockDisponible.value = producto.stock
     form.value.precioUnitario = producto.precioVenta
+    form.value.cantidad = 1
     calcularTotal()
   }
 }
@@ -324,26 +325,33 @@ const loadVentas = async () => {
 }
 
 const filtrarPorFechas = async () => {
-  if (!filtroFechaInicio.value || !filtroFechaFin.value) {
+  if (!rangoFechas.value || !rangoFechas.value[0] || !rangoFechas.value[1]) {
     return
   }
   
   loading.value = true
   try {
-    ventas.value = await ventaService.getByRangoFechas(
-      filtroFechaInicio.value,
-      filtroFechaFin.value
-    )
+    // Convertir las fechas dayjs a formato YYYY-MM-DD
+    const inicio = rangoFechas.value[0].format('YYYY-MM-DD')
+    const fin = rangoFechas.value[1].format('YYYY-MM-DD')
+    
+    ventas.value = await ventaService.getByRangoFechas(inicio, fin)
   } catch (error) {
     console.error('Error al filtrar:', error)
+    if (error.response) {
+      notification.error({
+        message: 'Error al filtrar',
+        description: 'No se pudieron filtrar las ventas por fecha',
+        duration: 3
+      })
+    }
   } finally {
     loading.value = false
   }
 }
 
 const limpiarFiltros = () => {
-  filtroFechaInicio.value = null
-  filtroFechaFin.value = null
+  rangoFechas.value = null
   loadVentas()
 }
 
