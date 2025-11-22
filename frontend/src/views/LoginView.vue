@@ -1,121 +1,172 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700 p-4">
-    <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+    <a-card class="w-full max-w-md" :bordered="false">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Millenium Conect</h1>
         <p class="text-gray-600">Sistema de Gestión - Taekwondo</p>
       </div>
       
-      <!-- Tabs -->
-      <div class="flex mb-6 border-b">
-        <button
-          @click="activeTab = 'login'"
-          :class="activeTab === 'login' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
-          class="flex-1 py-2 font-medium transition"
-        >
-          Iniciar Sesión
-        </button>
-        <button
-          @click="activeTab = 'register'"
-          :class="activeTab === 'register' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
-          class="flex-1 py-2 font-medium transition"
-        >
-          Registrarse
-        </button>
-      </div>
-      
-      <!-- Login Form -->
-      <form v-if="activeTab === 'login'" @submit.prevent="handleLogin" class="space-y-6">
-        <div>
-          <label class="block text-gray-700 font-medium mb-2">Usuario</label>
-          <input
-            v-model="loginForm.username"
-            type="text"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ingresa tu usuario"
-          />
-        </div>
+      <a-tabs v-model:activeKey="activeTab" centered>
+        <a-tab-pane key="login" tab="Iniciar Sesión">
+          <a-form
+            :model="loginForm"
+            @finish="handleLogin"
+            layout="vertical"
+            class="mt-4"
+          >
+            <a-form-item
+              label="Usuario"
+              name="username"
+              :rules="[{ required: true, message: 'Por favor ingresa tu usuario' }]"
+            >
+              <a-input
+                v-model:value="loginForm.username"
+                size="large"
+                placeholder="Ingresa tu usuario"
+              >
+                <template #prefix>
+                  <UserOutlined />
+                </template>
+              </a-input>
+            </a-form-item>
+            
+            <a-form-item
+              label="Contraseña"
+              name="password"
+              :rules="[{ required: true, message: 'Por favor ingresa tu contraseña' }]"
+            >
+              <a-input-password
+                v-model:value="loginForm.password"
+                size="large"
+                placeholder="Ingresa tu contraseña"
+              >
+                <template #prefix>
+                  <LockOutlined />
+                </template>
+              </a-input-password>
+            </a-form-item>
+            
+            <a-alert
+              v-if="error"
+              :message="error"
+              type="error"
+              show-icon
+              closable
+              class="mb-4"
+              @close="error = ''"
+            />
+            
+            <a-form-item>
+              <a-button
+                type="primary"
+                html-type="submit"
+                size="large"
+                :loading="loading"
+                block
+              >
+                Iniciar Sesión
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </a-tab-pane>
         
-        <div>
-          <label class="block text-gray-700 font-medium mb-2">Contraseña</label>
-          <input
-            v-model="loginForm.password"
-            type="password"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ingresa tu contraseña"
-          />
-        </div>
-        
-        <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {{ error }}
-        </div>
-        
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
-        </button>
-      </form>
-      
-      <!-- Register Form -->
-      <form v-if="activeTab === 'register'" @submit.prevent="handleRegister" class="space-y-6">
-        <div>
-          <label class="block text-gray-700 font-medium mb-2">Usuario</label>
-          <input
-            v-model="registerForm.username"
-            type="text"
-            required
-            minlength="3"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Elige un nombre de usuario"
-          />
-        </div>
-        
-        <div>
-          <label class="block text-gray-700 font-medium mb-2">Contraseña</label>
-          <input
-            v-model="registerForm.password"
-            type="password"
-            required
-            minlength="6"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Mínimo 6 caracteres"
-          />
-        </div>
-        
-        <div>
-          <label class="block text-gray-700 font-medium mb-2">Confirmar Contraseña</label>
-          <input
-            v-model="registerForm.confirmPassword"
-            type="password"
-            required
-            minlength="6"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Confirma tu contraseña"
-          />
-        </div>
-        
-        <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {{ error }}
-        </div>
-        
-        <div v-if="success" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          {{ success }}
-        </div>
-        
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {{ loading ? 'Registrando...' : 'Registrarse' }}
-        </button>
-      </form>
-    </div>
+        <a-tab-pane key="register" tab="Registrarse">
+          <a-form
+            :model="registerForm"
+            @finish="handleRegister"
+            layout="vertical"
+            class="mt-4"
+          >
+            <a-form-item
+              label="Usuario"
+              name="username"
+              :rules="[
+                { required: true, message: 'Por favor ingresa un usuario' },
+                { min: 3, message: 'Mínimo 3 caracteres' }
+              ]"
+            >
+              <a-input
+                v-model:value="registerForm.username"
+                size="large"
+                placeholder="Elige un nombre de usuario"
+              >
+                <template #prefix>
+                  <UserOutlined />
+                </template>
+              </a-input>
+            </a-form-item>
+            
+            <a-form-item
+              label="Contraseña"
+              name="password"
+              :rules="[
+                { required: true, message: 'Por favor ingresa una contraseña' },
+                { min: 6, message: 'Mínimo 6 caracteres' }
+              ]"
+            >
+              <a-input-password
+                v-model:value="registerForm.password"
+                size="large"
+                placeholder="Mínimo 6 caracteres"
+              >
+                <template #prefix>
+                  <LockOutlined />
+                </template>
+              </a-input-password>
+            </a-form-item>
+            
+            <a-form-item
+              label="Confirmar Contraseña"
+              name="confirmPassword"
+              :rules="[
+                { required: true, message: 'Por favor confirma tu contraseña' },
+                { validator: validatePassword }
+              ]"
+            >
+              <a-input-password
+                v-model:value="registerForm.confirmPassword"
+                size="large"
+                placeholder="Confirma tu contraseña"
+              >
+                <template #prefix>
+                  <LockOutlined />
+                </template>
+              </a-input-password>
+            </a-form-item>
+            
+            <a-alert
+              v-if="error"
+              :message="error"
+              type="error"
+              show-icon
+              closable
+              class="mb-4"
+              @close="error = ''"
+            />
+            
+            <a-alert
+              v-if="success"
+              :message="success"
+              type="success"
+              show-icon
+              class="mb-4"
+            />
+            
+            <a-form-item>
+              <a-button
+                type="primary"
+                html-type="submit"
+                size="large"
+                :loading="loading"
+                block
+              >
+                Registrarse
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </a-tab-pane>
+      </a-tabs>
+    </a-card>
   </div>
 </template>
 
@@ -123,6 +174,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -142,6 +194,13 @@ const registerForm = ref({
   password: '',
   confirmPassword: ''
 })
+
+const validatePassword = async (_rule, value) => {
+  if (value !== registerForm.value.password) {
+    return Promise.reject('Las contraseñas no coinciden')
+  }
+  return Promise.resolve()
+}
 
 const handleLogin = async () => {
   loading.value = true
@@ -163,13 +222,6 @@ const handleRegister = async () => {
   error.value = ''
   success.value = ''
   
-  // Validar que las contraseñas coincidan
-  if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    error.value = 'Las contraseñas no coinciden'
-    loading.value = false
-    return
-  }
-  
   const result = await authStore.register(registerForm.value.username, registerForm.value.password)
   
   if (result.success) {
@@ -186,3 +238,9 @@ const handleRegister = async () => {
   loading.value = false
 }
 </script>
+
+<style scoped>
+.ant-card {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+</style>

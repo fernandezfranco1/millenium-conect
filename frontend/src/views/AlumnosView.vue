@@ -1,265 +1,228 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <nav class="bg-blue-600 text-white p-4 shadow-lg">
-      <div class="container mx-auto flex justify-between items-center">
-        <router-link to="/" class="text-2xl font-bold">Millenium Conect</router-link>
-        <button
-          @click="handleLogout"
-          class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded transition"
-        >
-          Cerrar Sesión
-        </button>
-      </div>
-    </nav>
-    
-    <div class="container mx-auto p-6">
-      <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-gray-800">Gestión de Alumnos</h2>
-        <button
-          @click="showModal = true; editingAlumno = null; resetForm()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition"
-        >
-          + Nuevo Alumno
-        </button>
-      </div>
+  <app-layout>
+    <div class="p-6">
+      <a-page-header
+        title="Gestión de Alumnos"
+        class="bg-white mb-6 rounded-lg"
+      >
+        <template #extra>
+          <a-button type="primary" size="large" @click="showModal = true; editingAlumno = null; resetForm()">
+            <template #icon><PlusOutlined /></template>
+            Nuevo Alumno
+          </a-button>
+        </template>
+      </a-page-header>
       
-      <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <input
-          v-model="searchTerm"
-          @input="buscarAlumnos"
-          type="text"
+      <a-card class="mb-6">
+        <a-input-search
+          v-model:value="searchTerm"
           placeholder="Buscar alumno por nombre o apellido..."
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+          size="large"
+          @search="buscarAlumnos"
+          @input="buscarAlumnos"
+        >
+          <template #prefix>
+            <SearchOutlined />
+          </template>
+        </a-input-search>
+      </a-card>
       
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
-            <tr>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Nombre</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">DNI</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Teléfono</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Categoría</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Edad</th>
-              <th class="px-6 py-3 text-center text-gray-700 font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="alumno in alumnos" :key="alumno.idAlumno" class="border-b hover:bg-gray-50">
-              <td class="px-6 py-4">{{ alumno.nombre }} {{ alumno.apellido }}</td>
-              <td class="px-6 py-4">{{ alumno.dni }}</td>
-              <td class="px-6 py-4">{{ alumno.telefono }}</td>
-              <td class="px-6 py-4">{{ alumno.categoria }}</td>
-              <td class="px-6 py-4">{{ alumno.edad }}</td>
-              <td class="px-6 py-4 text-center">
-                <button
-                  @click="editAlumno(alumno)"
-                  class="text-blue-600 hover:text-blue-800 mr-3"
+      <a-card>
+        <a-table
+          :columns="columns"
+          :data-source="alumnos"
+          :pagination="false"
+          :loading="loading"
+          :row-key="record => record.idAlumno"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'nombre'">
+              {{ record.nombre }} {{ record.apellido }}
+            </template>
+            <template v-else-if="column.key === 'categoria'">
+              <a-tag color="blue">{{ record.categoria }}</a-tag>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-space>
+                <a-button type="link" @click="editAlumno(record)">
+                  <EditOutlined /> Editar
+                </a-button>
+                <a-popconfirm
+                  title="¿Estás seguro de eliminar este alumno?"
+                  ok-text="Sí"
+                  cancel-text="No"
+                  @confirm="deleteAlumno(record.idAlumno)"
                 >
-                  Editar
-                </button>
-                <button
-                  @click="deleteAlumno(alumno.idAlumno)"
-                  class="text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <a-button type="link" danger>
+                    <DeleteOutlined /> Eliminar
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
         
-        <!-- Paginación -->
-        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t">
+        <div class="mt-4 flex justify-between items-center">
           <div class="text-sm text-gray-700">
             Mostrando {{ (pagination.currentPage * pagination.size) + 1 }} a 
             {{ Math.min((pagination.currentPage + 1) * pagination.size, pagination.totalItems) }} 
             de {{ pagination.totalItems }} alumnos
           </div>
           
-          <div class="flex items-center space-x-2">
-            <button
-              @click="changePage(pagination.currentPage - 1)"
-              :disabled="!pagination.hasPrevious"
-              class="px-4 py-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Anterior
-            </button>
-            
-            <div class="flex space-x-1">
-              <button
-                v-for="page in displayPages"
-                :key="page"
-                @click="changePage(page)"
-                :class="page === pagination.currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-100'"
-                class="px-4 py-2 border rounded-lg"
-              >
-                {{ page + 1 }}
-              </button>
-            </div>
-            
-            <button
-              @click="changePage(pagination.currentPage + 1)"
-              :disabled="!pagination.hasNext"
-              class="px-4 py-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Siguiente
-            </button>
-          </div>
-          
-          <div class="flex items-center space-x-2">
-            <label class="text-sm text-gray-700">Por página:</label>
-            <select
-              v-model="pagination.size"
-              @change="changePageSize"
-              class="border rounded-lg px-3 py-2"
-            >
-              <option :value="5">5</option>
-              <option :value="10">10</option>
-              <option :value="20">20</option>
-              <option :value="50">50</option>
-            </select>
-          </div>
+          <a-pagination
+            v-model:current="currentPage"
+            v-model:page-size="pagination.size"
+            :total="pagination.totalItems"
+            :show-size-changer="true"
+            :page-size-options="['5', '10', '20', '50']"
+            @change="onPageChange"
+            @show-size-change="onPageSizeChange"
+          />
         </div>
-      </div>
+      </a-card>
     </div>
     
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
-        <h3 class="text-2xl font-bold mb-4">
-          {{ editingAlumno ? 'Editar Alumno' : 'Nuevo Alumno' }}
-        </h3>
-        
-        <form @submit.prevent="saveAlumno" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-gray-700 mb-2">Nombre</label>
-              <input 
-                v-model="form.nombre" 
-                type="text" 
-                required 
-                @input="validateTextOnly($event, 'nombre')"
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Solo letras"
-              />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Apellido</label>
-              <input 
-                v-model="form.apellido" 
-                type="text" 
-                required 
-                @input="validateTextOnly($event, 'apellido')"
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Solo letras"
-              />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">DNI</label>
-              <input 
-                v-model="form.dni" 
-                type="text" 
-                required 
-                @input="validateNumbersOnly($event, 'dni')"
-                maxlength="10"
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Solo números"
-              />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Teléfono</label>
-              <input 
-                v-model="form.telefono" 
-                type="text" 
-                @input="validateNumbersOnly($event, 'telefono')"
-                maxlength="15"
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Solo números"
-              />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Peso (Kg)</label>
-              <div class="relative">
-                <input 
-                  v-model="form.peso" 
-                  type="number" 
-                  step="0.1" 
-                  min="0"
-                  class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12" 
-                  placeholder="0.0"
-                />
-                <span class="absolute right-3 top-2.5 text-gray-500 font-medium">Kg</span>
-              </div>
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Categoría</label>
-              <select 
-                v-model="form.categoria" 
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona una categoría</option>
-                <option value="Blanco">Blanco</option>
-                <option value="Blanco punta amarilla">Blanco punta amarilla</option>
-                <option value="Amarillo">Amarillo</option>
-                <option value="Amarillo punta verde">Amarillo punta verde</option>
-                <option value="Verde">Verde</option>
-                <option value="Verde punta azul">Verde punta azul</option>
-                <option value="Azul">Azul</option>
-                <option value="Azul punta roja">Azul punta roja</option>
-                <option value="Rojo">Rojo</option>
-                <option value="Rojo punta negra">Rojo punta negra</option>
-                <option value="Negra">Negra</option>
-                <option value="Negro primer dan">Negro primer dan</option>
-                <option value="Negro segundo dan">Negro segundo dan</option>
-                <option value="Negro tercer dan">Negro tercer dan</option>
-                <option value="Negro cuarto dan">Negro cuarto dan</option>
-                <option value="Negro quinto dan">Negro quinto dan</option>
-                <option value="Negro sexto dan">Negro sexto dan</option>
-                <option value="Negro séptimo dan">Negro séptimo dan</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Género</label>
-              <select 
-                v-model="form.genero" 
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-2">Fecha de Nacimiento</label>
-              <input 
-                v-model="form.fechaNacimiento" 
-                type="date" 
-                required 
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-              />
-            </div>
-          </div>
+    <a-modal
+      v-model:open="showModal"
+      :title="editingAlumno ? 'Editar Alumno' : 'Nuevo Alumno'"
+      width="800px"
+      @ok="saveAlumno"
+      @cancel="closeModal"
+    >
+      <a-form
+        :model="form"
+        layout="vertical"
+        ref="formRef"
+      >
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item
+              label="Nombre"
+              name="nombre"
+              :rules="[
+                { required: true, message: 'El nombre es obligatorio' },
+                { pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, message: 'Solo se permiten letras' }
+              ]"
+            >
+              <a-input v-model:value="form.nombre" placeholder="Nombre del alumno" />
+            </a-form-item>
+          </a-col>
           
-          <div class="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              @click="showModal = false"
-              class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+          <a-col :span="12">
+            <a-form-item
+              label="Apellido"
+              name="apellido"
+              :rules="[
+                { required: true, message: 'El apellido es obligatorio' },
+                { pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, message: 'Solo se permiten letras' }
+              ]"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              <a-input v-model:value="form.apellido" placeholder="Apellido del alumno" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item
+              label="DNI"
+              name="dni"
+              :rules="[
+                { required: true, message: 'El DNI es obligatorio' },
+                { pattern: /^\d+$/, message: 'Solo se permiten números' }
+              ]"
             >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+              <a-input v-model:value="form.dni" placeholder="Solo números" />
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="12">
+            <a-form-item
+              label="Teléfono"
+              name="telefono"
+              :rules="[{ pattern: /^\d+$/, message: 'Solo se permiten números' }]"
+            >
+              <a-input v-model:value="form.telefono" placeholder="Solo números" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item
+              label="Peso (Kg)"
+              name="peso"
+            >
+              <a-input-number
+                v-model:value="form.peso"
+                :min="0"
+                :step="0.1"
+                style="width: 100%"
+                placeholder="Peso en Kg"
+              />
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="8">
+            <a-form-item
+              label="Género"
+              name="genero"
+              :rules="[{ required: true, message: 'El género es obligatorio' }]"
+            >
+              <a-select v-model:value="form.genero" placeholder="Seleccionar">
+                <a-select-option value="Masculino">Masculino</a-select-option>
+                <a-select-option value="Femenino">Femenino</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          
+          <a-col :span="8">
+            <a-form-item
+              label="Fecha de Nacimiento"
+              name="fechaNacimiento"
+              :rules="[{ required: true, message: 'La fecha es obligatoria' }]"
+            >
+              <a-date-picker
+                v-model:value="form.fechaNacimiento"
+                style="width: 100%"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-form-item
+          label="Categoría / Cinturón"
+          name="categoria"
+          :rules="[{ required: true, message: 'La categoría es obligatoria' }]"
+        >
+          <a-select v-model:value="form.categoria" placeholder="Seleccionar categoría">
+            <a-select-option value="Blanco">Blanco</a-select-option>
+            <a-select-option value="Blanco punta amarilla">Blanco punta amarilla</a-select-option>
+            <a-select-option value="Amarillo">Amarillo</a-select-option>
+            <a-select-option value="Amarillo punta verde">Amarillo punta verde</a-select-option>
+            <a-select-option value="Verde">Verde</a-select-option>
+            <a-select-option value="Verde punta azul">Verde punta azul</a-select-option>
+            <a-select-option value="Azul">Azul</a-select-option>
+            <a-select-option value="Azul punta roja">Azul punta roja</a-select-option>
+            <a-select-option value="Rojo">Rojo</a-select-option>
+            <a-select-option value="Rojo punta negra">Rojo punta negra</a-select-option>
+            <a-select-option value="Negro primer dan">Negro primer dan</a-select-option>
+            <a-select-option value="Negro segundo dan">Negro segundo dan</a-select-option>
+            <a-select-option value="Negro tercer dan">Negro tercer dan</a-select-option>
+            <a-select-option value="Negro cuarto dan">Negro cuarto dan</a-select-option>
+            <a-select-option value="Negro quinto dan">Negro quinto dan</a-select-option>
+            <a-select-option value="Negro sexto dan">Negro sexto dan</a-select-option>
+            <a-select-option value="Negro séptimo dan">Negro séptimo dan</a-select-option>
+          </a-select>
+        </a-form-item>
+        
+        <a-alert v-if="error" :message="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
+      </a-form>
+    </a-modal>
+  </app-layout>
 </template>
 
 <script setup>
@@ -267,22 +230,36 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import alumnoService from '@/services/alumnoService'
+import AppLayout from '@/components/AppLayout.vue'
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined
+} from '@ant-design/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
 const alumnos = ref([])
 const showModal = ref(false)
 const editingAlumno = ref(null)
+const error = ref('')
 const searchTerm = ref('')
+const loading = ref(false)
+const formRef = ref()
 
 const pagination = ref({
   currentPage: 0,
-  size: 10,
-  totalItems: 0,
   totalPages: 0,
-  hasNext: false,
-  hasPrevious: false
+  totalItems: 0,
+  size: 10,
+  hasPrevious: false,
+  hasNext: false
+})
+
+const currentPage = computed({
+  get: () => pagination.value.currentPage + 1,
+  set: (val) => pagination.value.currentPage = val - 1
 })
 
 const form = ref({
@@ -292,13 +269,66 @@ const form = ref({
   telefono: '',
   peso: null,
   categoria: '',
-  genero: 'Masculino',
-  fechaNacimiento: ''
+  genero: '',
+  fechaNacimiento: null
 })
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
+const columns = [
+  { title: 'Nombre', key: 'nombre', dataIndex: 'nombre' },
+  { title: 'DNI', dataIndex: 'dni' },
+  { title: 'Teléfono', dataIndex: 'telefono' },
+  { title: 'Categoría', key: 'categoria', dataIndex: 'categoria' },
+  { title: 'Edad', dataIndex: 'edad' },
+  { title: 'Acciones', key: 'actions', align: 'center' }
+]
+
+const loadAlumnos = async () => {
+  loading.value = true
+  try {
+    const response = await alumnoService.getAll(
+      pagination.value.currentPage,
+      pagination.value.size,
+      'nombre',
+      'asc'
+    )
+    alumnos.value = response.content
+    pagination.value.totalPages = response.totalPages
+    pagination.value.totalItems = response.totalItems
+    pagination.value.currentPage = response.currentPage
+    pagination.value.hasPrevious = response.currentPage > 0
+    pagination.value.hasNext = response.currentPage < response.totalPages - 1
+  } catch (error) {
+    console.error('Error al cargar alumnos:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const buscarAlumnos = async () => {
+  if (searchTerm.value.trim()) {
+    loading.value = true
+    try {
+      const response = await alumnoService.buscar(searchTerm.value)
+      alumnos.value = response
+    } catch (error) {
+      console.error('Error al buscar:', error)
+    } finally {
+      loading.value = false
+    }
+  } else {
+    loadAlumnos()
+  }
+}
+
+const onPageChange = (page) => {
+  pagination.value.currentPage = page - 1
+  loadAlumnos()
+}
+
+const onPageSizeChange = (current, size) => {
+  pagination.value.size = size
+  pagination.value.currentPage = 0
+  loadAlumnos()
 }
 
 const resetForm = () => {
@@ -309,65 +339,35 @@ const resetForm = () => {
     telefono: '',
     peso: null,
     categoria: '',
-    genero: 'Masculino',
-    fechaNacimiento: ''
+    genero: '',
+    fechaNacimiento: null
   }
+  error.value = ''
 }
 
-const loadAlumnos = async () => {
+const closeModal = () => {
+  showModal.value = false
+  resetForm()
+  editingAlumno.value = null
+}
+
+const saveAlumno = async () => {
   try {
-    const response = await alumnoService.getAll(
-      pagination.value.currentPage,
-      pagination.value.size,
-      'nombre',
-      'asc'
-    )
-    alumnos.value = response.content
-    pagination.value.totalItems = response.totalItems
-    pagination.value.totalPages = response.totalPages
-    pagination.value.hasNext = response.hasNext
-    pagination.value.hasPrevious = response.hasPrevious
-  } catch (error) {
-    console.error('Error al cargar alumnos:', error)
-  }
-}
-
-const changePage = (page) => {
-  if (page >= 0 && page < pagination.value.totalPages) {
-    pagination.value.currentPage = page
-    loadAlumnos()
-  }
-}
-
-const changePageSize = () => {
-  pagination.value.currentPage = 0
-  loadAlumnos()
-}
-
-const displayPages = computed(() => {
-  const pages = []
-  const total = pagination.value.totalPages
-  const current = pagination.value.currentPage
-  
-  let start = Math.max(0, current - 2)
-  let end = Math.min(total - 1, current + 2)
-  
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-  
-  return pages
-})
-
-const buscarAlumnos = async () => {
-  if (searchTerm.value.trim()) {
-    try {
-      alumnos.value = await alumnoService.buscar(searchTerm.value)
-    } catch (error) {
-      console.error('Error al buscar alumnos:', error)
+    await formRef.value.validate()
+    
+    const alumnoData = { ...form.value }
+    
+    if (editingAlumno.value) {
+      await alumnoService.update(editingAlumno.value.idAlumno, alumnoData)
+    } else {
+      await alumnoService.create(alumnoData)
     }
-  } else {
+    
+    closeModal()
     loadAlumnos()
+  } catch (error) {
+    console.error('Error al guardar:', error)
+    error.value = 'Error al guardar el alumno'
   }
 }
 
@@ -377,41 +377,13 @@ const editAlumno = (alumno) => {
   showModal.value = true
 }
 
-const saveAlumno = async () => {
+const deleteAlumno = async (id) => {
   try {
-    if (editingAlumno.value) {
-      await alumnoService.update(editingAlumno.value.idAlumno, form.value)
-    } else {
-      await alumnoService.create(form.value)
-    }
-    showModal.value = false
+    await alumnoService.delete(id)
     loadAlumnos()
   } catch (error) {
-    console.error('Error al guardar alumno:', error)
-    alert('Error al guardar el alumno')
+    console.error('Error al eliminar:', error)
   }
-}
-
-const deleteAlumno = async (id) => {
-  if (confirm('¿Estás seguro de eliminar este alumno?')) {
-    try {
-      await alumnoService.delete(id)
-      loadAlumnos()
-    } catch (error) {
-      console.error('Error al eliminar alumno:', error)
-      alert('Error al eliminar el alumno')
-    }
-  }
-}
-
-const validateTextOnly = (event, field) => {
-  // Eliminar números y símbolos, solo permite letras y espacios
-  form.value[field] = event.target.value.replace(/[^a-záéíóúñA-ZÁÉÍÓÚÑ\s]/g, '')
-}
-
-const validateNumbersOnly = (event, field) => {
-  // Solo permite números
-  form.value[field] = event.target.value.replace(/[^0-9]/g, '')
 }
 
 onMounted(() => {

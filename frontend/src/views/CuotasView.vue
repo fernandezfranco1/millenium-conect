@@ -1,321 +1,238 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <nav class="bg-blue-600 text-white p-4 shadow-lg">
-      <div class="container mx-auto flex justify-between items-center">
-        <router-link to="/" class="text-2xl font-bold">Millenium Conect</router-link>
-        <button @click="handleLogout" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded transition">
-          Cerrar Sesión
-        </button>
-      </div>
-    </nav>
-    
-    <div class="container mx-auto p-6">
-      <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-gray-800">Gestión de Cuotas</h2>
-        <button
-          @click="showModal = true; resetForm()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition"
+  <app-layout>
+    <div class="p-6">
+      <a-page-header
+        title="Gestión de Cuotas"
+        class="bg-white mb-6 rounded-lg"
+      >
+        <template #extra>
+          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+            <template #icon><PlusOutlined /></template>
+            Nueva Cuota
+          </a-button>
+        </template>
+      </a-page-header>
+      
+      <a-card>
+        <a-table
+          :columns="columns"
+          :data-source="cuotas"
+          :pagination="false"
+          :loading="loading"
+          :row-key="record => record.idCuota"
         >
-          + Nueva Cuota
-        </button>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
-            <tr>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Alumno</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Mes</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Monto</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Fecha Pago</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Forma de Pago</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Estado</th>
-              <th class="px-6 py-3 text-center text-gray-700 font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cuota in cuotas" :key="cuota.idCuota" class="border-b hover:bg-gray-50">
-              <td class="px-6 py-4">{{ cuota.alumno?.nombre }} {{ cuota.alumno?.apellido }}</td>
-              <td class="px-6 py-4">{{ formatMesPago(cuota.mesPago) }}</td>
-              <td class="px-6 py-4 font-semibold">{{ formatCurrency(cuota.monto) }}</td>
-              <td class="px-6 py-4">{{ cuota.fechaPago }}</td>
-              <td class="px-6 py-4">{{ cuota.formaPago }}</td>
-              <td class="px-6 py-4">
-                <span :class="getEstadoClass(cuota.estado)" class="px-3 py-1 rounded-full text-sm">
-                  {{ cuota.estado }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-center">
-                <button
-                  @click="editCuota(cuota)"
-                  class="text-blue-600 hover:text-blue-800 mr-3"
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'alumno'">
+              {{ record.alumno?.nombre }} {{ record.alumno?.apellido }}
+            </template>
+            <template v-else-if="column.key === 'mesPago'">
+              {{ formatMesPago(record.mesPago) }}
+            </template>
+            <template v-else-if="column.key === 'monto'">
+              {{ formatCurrency(record.monto) }}
+            </template>
+            <template v-else-if="column.key === 'estado'">
+              <a-tag :color="record.estado === 'Pagado' ? 'green' : 'orange'">
+                {{ record.estado }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-space>
+                <a-button type="link" @click="editCuota(record)">
+                  <EditOutlined /> Editar
+                </a-button>
+                <a-popconfirm
+                  title="¿Estás seguro de eliminar esta cuota?"
+                  ok-text="Sí"
+                  cancel-text="No"
+                  @confirm="deleteCuota(record.idCuota)"
                 >
-                  Editar
-                </button>
-                <button
-                  @click="deleteCuota(cuota.idCuota)"
-                  class="text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      
-      <!-- Paginación -->
-      <div class="bg-white px-6 py-4 flex items-center justify-between border-t">
-        <div class="flex items-center space-x-2">
-          <span class="text-sm text-gray-700">Mostrar</span>
-          <select
-            v-model="pagination.size"
-            @change="changePageSize"
-            class="border rounded px-2 py-1 text-sm"
-          >
-            <option :value="5">5</option>
-            <option :value="10">10</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-          </select>
-          <span class="text-sm text-gray-700">
-            de {{ pagination.totalItems }} cuotas
-          </span>
-        </div>
+                  <a-button type="link" danger>
+                    <DeleteOutlined /> Eliminar
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
         
-        <div class="flex items-center space-x-2">
-          <button
-            @click="changePage(0)"
-            :disabled="pagination.currentPage === 0"
-            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            «
-          </button>
-          <button
-            @click="changePage(pagination.currentPage - 1)"
-            :disabled="pagination.currentPage === 0"
-            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ‹
-          </button>
+        <div class="mt-4 flex justify-between items-center">
+          <div class="text-sm text-gray-700">
+            Mostrando {{ (pagination.currentPage * pagination.size) + 1 }} a 
+            {{ Math.min((pagination.currentPage + 1) * pagination.size, pagination.totalItems) }} 
+            de {{ pagination.totalItems }} cuotas
+          </div>
           
-          <button
-            v-for="page in displayPages"
-            :key="page"
-            @click="changePage(page)"
-            :class="[
-              'px-3 py-1 border rounded',
-              pagination.currentPage === page
-                ? 'bg-blue-600 text-white'
-                : 'hover:bg-gray-100'
-            ]"
-          >
-            {{ page + 1 }}
-          </button>
-          
-          <button
-            @click="changePage(pagination.currentPage + 1)"
-            :disabled="pagination.currentPage >= pagination.totalPages - 1"
-            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ›
-          </button>
-          <button
-            @click="changePage(pagination.totalPages - 1)"
-            :disabled="pagination.currentPage >= pagination.totalPages - 1"
-            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            »
-          </button>
+          <a-pagination
+            v-model:current="currentPage"
+            v-model:page-size="pagination.size"
+            :total="pagination.totalItems"
+            :show-size-changer="true"
+            :page-size-options="['5', '10', '20', '50']"
+            @change="onPageChange"
+            @show-size-change="onPageSizeChange"
+          />
         </div>
-      </div>
+      </a-card>
     </div>
     
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md my-8">
-        <h3 class="text-2xl font-bold mb-4">
-          {{ editingCuota ? 'Editar Cuota' : 'Nueva Cuota' }}
-        </h3>
+    <a-modal
+      v-model:open="showModal"
+      :title="editingCuota ? 'Editar Cuota' : 'Nueva Cuota'"
+      width="700px"
+      @ok="saveCuota"
+      @cancel="closeModal"
+    >
+      <a-form
+        :model="form"
+        layout="vertical"
+        ref="formRef"
+      >
+        <a-form-item
+          label="Alumno"
+          name="alumno"
+          :rules="[{ required: true, message: 'Debes seleccionar un alumno' }]"
+        >
+          <a-select
+            v-model:value="form.alumno"
+            show-search
+            placeholder="Buscar alumno..."
+            :filter-option="false"
+            :not-found-content="isSearching ? undefined : 'No se encontraron alumnos'"
+            @search="searchAlumnos"
+            :loading="isSearching"
+            :options="alumnosOptions"
+          >
+            <template #notFoundContent v-if="isSearching">
+              <a-spin size="small" />
+            </template>
+          </a-select>
+        </a-form-item>
         
-        <form @submit.prevent="saveCuota" class="space-y-4">
-          <!-- Autocomplete Alumno -->
-          <div>
-            <label class="block text-gray-700 mb-2">Alumno *</label>
-            <div class="relative">
-              <input
-                v-model="alumnoSearch"
-                @input="searchAlumnos"
-                @focus="alumnoSearch.length >= 2 && searchAlumnos()"
-                type="text"
-                required
-                placeholder="Escribe al menos 2 letras para buscar..."
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item
+              label="Mes de Pago"
+              name="mesPago"
+              :rules="[{ required: true, message: 'El mes es obligatorio' }]"
+            >
+              <a-date-picker
+                v-model:value="form.mesPago"
+                picker="month"
+                style="width: 100%"
+                format="YYYY-MM"
+                value-format="YYYY-MM"
               />
-              
-              <!-- Indicador de búsqueda -->
-              <div v-if="isSearching" class="absolute right-3 top-3">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              </div>
-              
-              <!-- Lista de alumnos -->
-              <div
-                v-if="showAlumnosList && !isSearching"
-                class="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
-              >
-                <div v-if="alumnosEncontrados.length === 0" class="px-4 py-3 text-gray-500 text-center">
-                  No se encontraron alumnos
-                </div>
-                <button
-                  v-for="alumno in alumnosEncontrados"
-                  :key="alumno.idAlumno"
-                  @click.prevent="selectAlumno(alumno)"
-                  type="button"
-                  class="w-full px-4 py-2 text-left hover:bg-blue-50 border-b last:border-b-0"
-                >
-                  <div class="font-medium">{{ alumno.nombre }} {{ alumno.apellido }}</div>
-                  <div class="text-sm text-gray-500">DNI: {{ alumno.dni }} | {{ alumno.categoria }}</div>
-                </button>
-              </div>
-            </div>
-            <div v-if="form.alumno" class="mt-2 text-sm text-green-600">
-              ✓ Alumno seleccionado: {{ form.alumno.nombre }} {{ form.alumno.apellido }}
-            </div>
-          </div>
+            </a-form-item>
+          </a-col>
           
-          <!-- Mes de Pago -->
-          <div>
-            <label class="block text-gray-700 mb-2">Mes de Pago *</label>
-            <input
-              v-model="form.mesPago"
-              type="month"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <!-- Monto -->
-          <div>
-            <label class="block text-gray-700 mb-2">Monto *</label>
-            <div class="relative">
-              <span class="absolute left-3 top-2.5 text-gray-600 font-semibold">$</span>
-              <input
-                v-model="form.monto"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                placeholder="0.00"
-                class="w-full pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <a-col :span="12">
+            <a-form-item
+              label="Monto"
+              name="monto"
+              :rules="[{ required: true, message: 'El monto es obligatorio' }]"
+            >
+              <a-input-number
+                v-model:value="form.monto"
+                :min="0"
+                :step="0.01"
+                :precision="2"
+                style="width: 100%"
+                :formatter="value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+                :parser="value => value.replace(/\$\s?|(,*)/g, '')"
               />
-            </div>
-          </div>
-          
-          <!-- Fecha de Pago -->
-          <div>
-            <label class="block text-gray-700 mb-2">Fecha de Pago *</label>
-            <input
-              v-model="form.fechaPago"
-              type="date"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <!-- Forma de Pago -->
-          <div>
-            <label class="block text-gray-700 mb-2">Forma de Pago *</label>
-            <select
-              v-model="form.formaPago"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item
+              label="Fecha de Pago"
+              name="fechaPago"
+              :rules="[{ required: true, message: 'La fecha es obligatoria' }]"
             >
-              <option value="">Seleccionar...</option>
-              <option value="Débito">Débito</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="Transferencia">Transferencia</option>
-              <option value="Crédito">Crédito</option>
-            </select>
-          </div>
+              <a-date-picker
+                v-model:value="form.fechaPago"
+                style="width: 100%"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+              />
+            </a-form-item>
+          </a-col>
           
-          <!-- Estado -->
-          <div>
-            <label class="block text-gray-700 mb-2">Estado *</label>
-            <select
-              v-model="form.estado"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <a-col :span="12">
+            <a-form-item
+              label="Forma de Pago"
+              name="formaPago"
+              :rules="[{ required: true, message: 'La forma de pago es obligatoria' }]"
             >
-              <option value="Pendiente">Pendiente</option>
-              <option value="Pagado">Pagado</option>
-            </select>
-          </div>
-          
-          <!-- Comprobante -->
-          <div>
-            <label class="block text-gray-700 mb-2">Comprobante (opcional)</label>
-            <input
-              ref="fileInput"
-              type="file"
-              accept="image/*,application/pdf"
-              @change="handleFileChange"
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p class="text-xs text-gray-500 mt-1">Formatos: PDF o imágenes (máx. 10MB)</p>
-            <div v-if="uploadProgress" class="mt-2">
-              <div class="text-sm text-blue-600">Subiendo archivo...</div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all" :style="{width: uploadProgress + '%'}"></div>
-              </div>
-            </div>
-            <div v-if="form.comprobante" class="mt-2 text-sm text-green-600">
-              ✓ Archivo: {{ form.comprobante }}
-            </div>
-          </div>
-          
-          <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {{ error }}
-          </div>
-          
-          <div class="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="uploadProgress > 0 && uploadProgress < 100"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+              <a-select v-model:value="form.formaPago">
+                <a-select-option value="Débito">Débito</a-select-option>
+                <a-select-option value="Efectivo">Efectivo</a-select-option>
+                <a-select-option value="Transferencia">Transferencia</a-select-option>
+                <a-select-option value="Crédito">Crédito</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-form-item
+          label="Estado"
+          name="estado"
+          :rules="[{ required: true, message: 'El estado es obligatorio' }]"
+        >
+          <a-select v-model:value="form.estado">
+            <a-select-option value="Pendiente">Pendiente</a-select-option>
+            <a-select-option value="Pagado">Pagado</a-select-option>
+          </a-select>
+        </a-form-item>
+        
+        <a-form-item label="Comprobante (opcional)">
+          <a-upload
+            :file-list="fileList"
+            :before-upload="beforeUpload"
+            @remove="handleRemoveFile"
+            accept="image/*,application/pdf"
+            :max-count="1"
+          >
+            <a-button>
+              <upload-outlined /> Seleccionar Archivo
+            </a-button>
+          </a-upload>
+          <div class="text-xs text-gray-500 mt-1">Formatos: PDF o imágenes (máx. 10MB)</div>
+        </a-form-item>
+        
+        <a-alert v-if="error" :message="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
+      </a-form>
+    </a-modal>
+  </app-layout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import cuotaService from '@/services/cuotaService'
 import alumnoService from '@/services/alumnoService'
+import AppLayout from '@/components/AppLayout.vue'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UploadOutlined
+} from '@ant-design/icons-vue'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const cuotas = ref([])
 const showModal = ref(false)
 const editingCuota = ref(null)
 const error = ref('')
-const fileInput = ref(null)
-const uploadProgress = ref(0)
+const loading = ref(false)
+const formRef = ref()
+const isSearching = ref(false)
+const alumnosEncontrados = ref([])
+const searchTimeout = ref(null)
+const fileList = ref([])
 
-// Paginación
 const pagination = ref({
   currentPage: 0,
   totalPages: 0,
@@ -323,50 +240,37 @@ const pagination = ref({
   size: 10
 })
 
-// Autocomplete de alumnos
-const alumnosEncontrados = ref([])
-const alumnoSearch = ref('')
-const showAlumnosList = ref(false)
-const searchTimeout = ref(null)
-const isSearching = ref(false)
+const currentPage = computed({
+  get: () => pagination.value.currentPage + 1,
+  set: (val) => pagination.value.currentPage = val - 1
+})
 
 const form = ref({
   alumno: null,
-  mesPago: '',
-  monto: '',
+  mesPago: null,
+  monto: null,
   fechaPago: new Date().toISOString().split('T')[0],
   formaPago: '',
   estado: 'Pendiente',
   comprobante: ''
 })
 
-const displayPages = computed(() => {
-  const pages = []
-  const current = pagination.value.currentPage
-  const total = pagination.value.totalPages
-  
-  let start = Math.max(0, current - 2)
-  let end = Math.min(total - 1, current + 2)
-  
-  if (end - start < 4) {
-    if (start === 0) {
-      end = Math.min(total - 1, start + 4)
-    } else if (end === total - 1) {
-      start = Math.max(0, end - 4)
-    }
-  }
-  
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-  
-  return pages
-})
+const columns = [
+  { title: 'Alumno', key: 'alumno' },
+  { title: 'Mes', key: 'mesPago' },
+  { title: 'Monto', key: 'monto' },
+  { title: 'Fecha Pago', dataIndex: 'fechaPago' },
+  { title: 'Forma de Pago', dataIndex: 'formaPago' },
+  { title: 'Estado', key: 'estado' },
+  { title: 'Acciones', key: 'actions', align: 'center' }
+]
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
+const alumnosOptions = computed(() => {
+  return alumnosEncontrados.value.map(alumno => ({
+    label: `${alumno.nombre} ${alumno.apellido} - DNI: ${alumno.dni}`,
+    value: alumno.idAlumno
+  }))
+})
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('es-AR', {
@@ -383,32 +287,20 @@ const formatMesPago = (mesPago) => {
   return `${months[parseInt(month) - 1]} ${year}`
 }
 
-const getEstadoClass = (estado) => {
-  const classes = {
-    'Pagado': 'bg-green-100 text-green-800',
-    'Pendiente': 'bg-yellow-100 text-yellow-800'
-  }
-  return classes[estado] || 'bg-gray-100 text-gray-800'
-}
-
-const searchAlumnos = async () => {
+const searchAlumnos = async (value) => {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value)
   }
   
-  if (!alumnoSearch.value || alumnoSearch.value.length < 2) {
+  if (!value || value.length < 2) {
     alumnosEncontrados.value = []
-    showAlumnosList.value = false
     return
   }
   
-  showAlumnosList.value = true
-  
   searchTimeout.value = setTimeout(async () => {
     isSearching.value = true
-    
     try {
-      const response = await alumnoService.searchAlumnos(alumnoSearch.value, 0, 10)
+      const response = await alumnoService.searchAlumnos(value, 0, 10)
       alumnosEncontrados.value = response.content
     } catch (error) {
       console.error('Error al buscar alumnos:', error)
@@ -419,67 +311,80 @@ const searchAlumnos = async () => {
   }, 500)
 }
 
-const selectAlumno = (alumno) => {
-  form.value.alumno = alumno
-  alumnoSearch.value = `${alumno.nombre} ${alumno.apellido}`
-  showAlumnosList.value = false
+const beforeUpload = (file) => {
+  fileList.value = [file]
+  return false
 }
 
-const handleFileChange = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-  
+const handleRemoveFile = () => {
+  fileList.value = []
+  form.value.comprobante = ''
+}
+
+const loadCuotas = async () => {
+  loading.value = true
   try {
-    uploadProgress.value = 50
-    const response = await cuotaService.uploadComprobante(file)
-    form.value.comprobante = response.filename
-    uploadProgress.value = 100
-    
-    setTimeout(() => {
-      uploadProgress.value = 0
-    }, 1000)
+    const response = await cuotaService.getAll(
+      pagination.value.currentPage,
+      pagination.value.size,
+      'fechaPago',
+      'desc'
+    )
+    cuotas.value = response.content
+    pagination.value.totalPages = response.totalPages
+    pagination.value.totalItems = response.totalItems
+    pagination.value.currentPage = response.currentPage
   } catch (error) {
-    console.error('Error al subir archivo:', error)
-    error.value = error.response?.data?.error || 'Error al subir el archivo'
-    uploadProgress.value = 0
+    console.error('Error al cargar cuotas:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+const onPageChange = (page) => {
+  pagination.value.currentPage = page - 1
+  loadCuotas()
+}
+
+const onPageSizeChange = (current, size) => {
+  pagination.value.size = size
+  pagination.value.currentPage = 0
+  loadCuotas()
 }
 
 const resetForm = () => {
   form.value = {
     alumno: null,
-    mesPago: '',
-    monto: '',
+    mesPago: null,
+    monto: null,
     fechaPago: new Date().toISOString().split('T')[0],
     formaPago: '',
     estado: 'Pendiente',
     comprobante: ''
   }
-  alumnoSearch.value = ''
   alumnosEncontrados.value = []
-  showAlumnosList.value = false
-  editingCuota.value = null
+  fileList.value = []
   error.value = ''
-  uploadProgress.value = 0
-  if (fileInput.value) {
-    fileInput.value.value = ''
-  }
 }
 
 const closeModal = () => {
   showModal.value = false
   resetForm()
+  editingCuota.value = null
 }
 
 const saveCuota = async () => {
-  if (!form.value.alumno) {
-    error.value = 'Debes seleccionar un alumno'
-    return
-  }
-  
   try {
+    await formRef.value.validate()
+    
+    // Subir archivo si existe
+    if (fileList.value.length > 0) {
+      const response = await cuotaService.uploadComprobante(fileList.value[0])
+      form.value.comprobante = response.filename
+    }
+    
     const cuotaData = {
-      alumno: { idAlumno: form.value.alumno.idAlumno },
+      alumno: { idAlumno: form.value.alumno },
       mesPago: form.value.mesPago,
       monto: parseFloat(form.value.monto),
       fechaPago: form.value.fechaPago,
@@ -497,15 +402,15 @@ const saveCuota = async () => {
     closeModal()
     loadCuotas()
   } catch (error) {
-    console.error('Error al guardar cuota:', error)
-    error.value = 'Error al guardar la cuota'
+    console.error('Error al guardar:', error)
+    error.value = error.response?.data?.error || 'Error al guardar la cuota'
   }
 }
 
 const editCuota = (cuota) => {
   editingCuota.value = cuota
   form.value = {
-    alumno: cuota.alumno,
+    alumno: cuota.alumno?.idAlumno,
     mesPago: cuota.mesPago,
     monto: cuota.monto,
     fechaPago: cuota.fechaPago,
@@ -513,47 +418,18 @@ const editCuota = (cuota) => {
     estado: cuota.estado,
     comprobante: cuota.comprobante || ''
   }
-  alumnoSearch.value = `${cuota.alumno.nombre} ${cuota.alumno.apellido}`
+  if (cuota.alumno) {
+    alumnosEncontrados.value = [cuota.alumno]
+  }
   showModal.value = true
 }
 
-const loadCuotas = async () => {
-  try {
-    const response = await cuotaService.getAll(
-      pagination.value.currentPage,
-      pagination.value.size,
-      'fechaPago',
-      'desc'
-    )
-    cuotas.value = response.content
-    pagination.value.totalPages = response.totalPages
-    pagination.value.totalItems = response.totalItems
-    pagination.value.currentPage = response.currentPage
-  } catch (error) {
-    console.error('Error al cargar cuotas:', error)
-  }
-}
-
-const changePage = (page) => {
-  if (page >= 0 && page < pagination.value.totalPages) {
-    pagination.value.currentPage = page
-    loadCuotas()
-  }
-}
-
-const changePageSize = () => {
-  pagination.value.currentPage = 0
-  loadCuotas()
-}
-
 const deleteCuota = async (id) => {
-  if (confirm('¿Estás seguro de eliminar esta cuota?')) {
-    try {
-      await cuotaService.delete(id)
-      loadCuotas()
-    } catch (error) {
-      console.error('Error al eliminar cuota:', error)
-    }
+  try {
+    await cuotaService.delete(id)
+    loadCuotas()
+  } catch (error) {
+    console.error('Error al eliminar:', error)
   }
 }
 

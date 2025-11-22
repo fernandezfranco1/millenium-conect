@@ -1,186 +1,141 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <nav class="bg-blue-600 text-white p-4 shadow-lg">
-      <div class="container mx-auto flex justify-between items-center">
-        <router-link to="/" class="text-2xl font-bold">Millenium Conect</router-link>
-        <button @click="handleLogout" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded transition">
-          Cerrar Sesión
-        </button>
-      </div>
-    </nav>
-    
-    <div class="container mx-auto p-6">
-      <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-gray-800">Gestión de Asistencias</h2>
-        <button
-          @click="showModal = true; resetForm()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition"
-        >
-          + Nueva Asistencia
-        </button>
-      </div>
+  <app-layout>
+    <div class="p-6">
+      <a-page-header
+        title="Gestión de Asistencias"
+        class="bg-white mb-6 rounded-lg"
+      >
+        <template #extra>
+          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+            <template #icon><PlusOutlined /></template>
+            Nueva Asistencia
+          </a-button>
+        </template>
+      </a-page-header>
       
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
-            <tr>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Alumno</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Estado</th>
-              <th class="px-6 py-3 text-left text-gray-700 font-medium">Fecha</th>
-              <th class="px-6 py-3 text-center text-gray-700 font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="asistencia in asistencias" :key="asistencia.idAsistencia" class="border-b hover:bg-gray-50">
-              <td class="px-6 py-4">{{ asistencia.alumno?.nombre }} {{ asistencia.alumno?.apellido }}</td>
-              <td class="px-6 py-4">
-                <span :class="getEstadoClass(asistencia.estado)" class="px-3 py-1 rounded-full text-sm">
-                  {{ asistencia.estado }}
-                </span>
-              </td>
-              <td class="px-6 py-4">{{ asistencia.fechaAsistencia }}</td>
-              <td class="px-6 py-4 text-center">
-                <button
-                  @click="editAsistencia(asistencia)"
-                  class="text-blue-600 hover:text-blue-800 mr-3"
+      <a-card>
+        <a-table
+          :columns="columns"
+          :data-source="asistencias"
+          :loading="loading"
+          :row-key="record => record.idAsistencia"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'alumno'">
+              {{ record.alumno?.nombre }} {{ record.alumno?.apellido }}
+            </template>
+            <template v-else-if="column.key === 'estado'">
+              <a-tag :color="getEstadoColor(record.estado)">
+                {{ record.estado }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-space>
+                <a-button type="link" @click="editAsistencia(record)">
+                  <EditOutlined /> Editar
+                </a-button>
+                <a-popconfirm
+                  title="¿Estás seguro de eliminar esta asistencia?"
+                  ok-text="Sí"
+                  cancel-text="No"
+                  @confirm="deleteAsistencia(record.idAsistencia)"
                 >
-                  Editar
-                </button>
-                <button
-                  @click="deleteAsistencia(asistencia.idAsistencia)"
-                  class="text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                  <a-button type="link" danger>
+                    <DeleteOutlined /> Eliminar
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
+      </a-card>
     </div>
     
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-2xl font-bold mb-4">
-          {{ editingAsistencia ? 'Editar Asistencia' : 'Nueva Asistencia' }}
-        </h3>
+    <a-modal
+      v-model:open="showModal"
+      :title="editingAsistencia ? 'Editar Asistencia' : 'Nueva Asistencia'"
+      width="600px"
+      @ok="saveAsistencia"
+      @cancel="closeModal"
+    >
+      <a-form
+        :model="form"
+        layout="vertical"
+        ref="formRef"
+      >
+        <a-form-item
+          label="Alumno"
+          name="alumno"
+          :rules="[{ required: true, message: 'Debes seleccionar un alumno' }]"
+        >
+          <a-select
+            v-model:value="form.alumno"
+            show-search
+            placeholder="Buscar alumno..."
+            :filter-option="false"
+            :not-found-content="isSearching ? undefined : 'No se encontraron alumnos'"
+            @search="searchAlumnos"
+            :loading="isSearching"
+            :options="alumnosOptions"
+          >
+            <template #notFoundContent v-if="isSearching">
+              <a-spin size="small" />
+            </template>
+          </a-select>
+        </a-form-item>
         
-        <form @submit.prevent="saveAsistencia" class="space-y-4">
-          <!-- Autocomplete Alumno -->
-          <div>
-            <label class="block text-gray-700 mb-2">Alumno *</label>
-            <div class="relative">
-              <input
-                v-model="alumnoSearch"
-                @input="searchAlumnos"
-                @focus="alumnoSearch.length >= 2 && searchAlumnos()"
-                type="text"
-                required
-                placeholder="Escribe al menos 2 letras para buscar..."
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              <!-- Indicador de búsqueda -->
-              <div v-if="isSearching" class="absolute right-3 top-3">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              </div>
-              
-              <!-- Lista de alumnos -->
-              <div
-                v-if="showAlumnosList && !isSearching"
-                class="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
-              >
-                <div v-if="alumnosEncontrados.length === 0" class="px-4 py-3 text-gray-500 text-center">
-                  No se encontraron alumnos
-                </div>
-                <button
-                  v-for="alumno in alumnosEncontrados"
-                  :key="alumno.idAlumno"
-                  @click.prevent="selectAlumno(alumno)"
-                  type="button"
-                  class="w-full px-4 py-2 text-left hover:bg-blue-50 border-b last:border-b-0"
-                >
-                  <div class="font-medium">{{ alumno.nombre }} {{ alumno.apellido }}</div>
-                  <div class="text-sm text-gray-500">DNI: {{ alumno.dni }} | {{ alumno.categoria }}</div>
-                </button>
-              </div>
-            </div>
-            <div v-if="form.alumno" class="mt-2 text-sm text-green-600">
-              ✓ Alumno seleccionado: {{ form.alumno.nombre }} {{ form.alumno.apellido }}
-            </div>
-          </div>
-          
-          <!-- Estado -->
-          <div>
-            <label class="block text-gray-700 mb-2">Estado *</label>
-            <select
-              v-model="form.estado"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Presente">Presente</option>
-              <option value="Ausente">Ausente</option>
-              <option value="Tardanza">Tardanza</option>
-            </select>
-          </div>
-          
-          <!-- Fecha -->
-          <div>
-            <label class="block text-gray-700 mb-2">Fecha *</label>
-            <input
-              v-model="form.fechaAsistencia"
-              type="date"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {{ error }}
-          </div>
-          
-          <div class="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+        <a-form-item
+          label="Estado"
+          name="estado"
+          :rules="[{ required: true, message: 'El estado es obligatorio' }]"
+        >
+          <a-select v-model:value="form.estado">
+            <a-select-option value="Presente">Presente</a-select-option>
+            <a-select-option value="Ausente">Ausente</a-select-option>
+            <a-select-option value="Tardanza">Tardanza</a-select-option>
+          </a-select>
+        </a-form-item>
+        
+        <a-form-item
+          label="Fecha"
+          name="fechaAsistencia"
+          :rules="[{ required: true, message: 'La fecha es obligatoria' }]"
+        >
+          <a-date-picker
+            v-model:value="form.fechaAsistencia"
+            style="width: 100%"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </a-form-item>
+        
+        <a-alert v-if="error" :message="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
+      </a-form>
+    </a-modal>
+  </app-layout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import asistenciaService from '@/services/asistenciaService'
 import alumnoService from '@/services/alumnoService'
+import AppLayout from '@/components/AppLayout.vue'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined
+} from '@ant-design/icons-vue'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const asistencias = ref([])
 const showModal = ref(false)
 const editingAsistencia = ref(null)
 const error = ref('')
-
-// Autocomplete de alumnos
-const alumnosEncontrados = ref([])
-const alumnoSearch = ref('')
-const showAlumnosList = ref(false)
-const searchTimeout = ref(null)
+const loading = ref(false)
+const formRef = ref()
 const isSearching = ref(false)
+const alumnosEncontrados = ref([])
+const searchTimeout = ref(null)
 
 const form = ref({
   alumno: null,
@@ -188,33 +143,43 @@ const form = ref({
   fechaAsistencia: new Date().toISOString().split('T')[0]
 })
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
+const columns = [
+  { title: 'Alumno', key: 'alumno' },
+  { title: 'Estado', key: 'estado', dataIndex: 'estado' },
+  { title: 'Fecha', dataIndex: 'fechaAsistencia' },
+  { title: 'Acciones', key: 'actions', align: 'center' }
+]
+
+const alumnosOptions = computed(() => {
+  return alumnosEncontrados.value.map(alumno => ({
+    label: `${alumno.nombre} ${alumno.apellido} - DNI: ${alumno.dni}`,
+    value: alumno.idAlumno
+  }))
+})
+
+const getEstadoColor = (estado) => {
+  const colors = {
+    'Presente': 'green',
+    'Ausente': 'red',
+    'Tardanza': 'orange'
+  }
+  return colors[estado] || 'default'
 }
 
-const searchAlumnos = async () => {
-  // Limpiar timeout anterior
+const searchAlumnos = async (value) => {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value)
   }
   
-  // Si está vacío, limpiar resultados
-  if (!alumnoSearch.value || alumnoSearch.value.length < 2) {
+  if (!value || value.length < 2) {
     alumnosEncontrados.value = []
-    showAlumnosList.value = false
     return
   }
   
-  // Mostrar el dropdown inmediatamente
-  showAlumnosList.value = true
-  
-  // Debounce de 500ms
   searchTimeout.value = setTimeout(async () => {
     isSearching.value = true
-    
     try {
-      const response = await alumnoService.searchAlumnos(alumnoSearch.value, 0, 10)
+      const response = await alumnoService.searchAlumnos(value, 0, 10)
       alumnosEncontrados.value = response.content
     } catch (error) {
       console.error('Error al buscar alumnos:', error)
@@ -225,10 +190,15 @@ const searchAlumnos = async () => {
   }, 500)
 }
 
-const selectAlumno = (alumno) => {
-  form.value.alumno = alumno
-  alumnoSearch.value = `${alumno.nombre} ${alumno.apellido}`
-  showAlumnosList.value = false
+const loadAsistencias = async () => {
+  loading.value = true
+  try {
+    asistencias.value = await asistenciaService.getAll()
+  } catch (error) {
+    console.error('Error al cargar asistencias:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const resetForm = () => {
@@ -237,55 +207,22 @@ const resetForm = () => {
     estado: 'Presente',
     fechaAsistencia: new Date().toISOString().split('T')[0]
   }
-  alumnoSearch.value = ''
+  alumnosEncontrados.value = []
   error.value = ''
-  editingAsistencia.value = null
 }
 
 const closeModal = () => {
   showModal.value = false
   resetForm()
-}
-
-const getEstadoClass = (estado) => {
-  const classes = {
-    'Presente': 'bg-green-100 text-green-800',
-    'Ausente': 'bg-red-100 text-red-800',
-    'Tardanza': 'bg-yellow-100 text-yellow-800'
-  }
-  return classes[estado] || 'bg-gray-100 text-gray-800'
-}
-
-const loadAsistencias = async () => {
-  try {
-    asistencias.value = await asistenciaService.getAll()
-  } catch (error) {
-    console.error('Error al cargar asistencias:', error)
-  }
-}
-
-
-
-const editAsistencia = (asistencia) => {
-  editingAsistencia.value = asistencia
-  form.value = {
-    alumno: asistencia.alumno,
-    estado: asistencia.estado,
-    fechaAsistencia: asistencia.fechaAsistencia
-  }
-  alumnoSearch.value = `${asistencia.alumno.nombre} ${asistencia.alumno.apellido}`
-  showModal.value = true
+  editingAsistencia.value = null
 }
 
 const saveAsistencia = async () => {
-  if (!form.value.alumno) {
-    error.value = 'Debe seleccionar un alumno'
-    return
-  }
-  
   try {
+    await formRef.value.validate()
+    
     const asistenciaData = {
-      alumno: { idAlumno: form.value.alumno.idAlumno },
+      alumno: { idAlumno: form.value.alumno },
       estado: form.value.estado,
       fechaAsistencia: form.value.fechaAsistencia
     }
@@ -299,31 +236,35 @@ const saveAsistencia = async () => {
     closeModal()
     loadAsistencias()
   } catch (error) {
-    console.error('Error al guardar asistencia:', error)
+    console.error('Error al guardar:', error)
     error.value = 'Error al guardar la asistencia'
   }
 }
 
+const editAsistencia = (asistencia) => {
+  editingAsistencia.value = asistencia
+  form.value = {
+    alumno: asistencia.alumno?.idAlumno,
+    estado: asistencia.estado,
+    fechaAsistencia: asistencia.fechaAsistencia
+  }
+  // Agregar el alumno actual a las opciones
+  if (asistencia.alumno) {
+    alumnosEncontrados.value = [asistencia.alumno]
+  }
+  showModal.value = true
+}
+
 const deleteAsistencia = async (id) => {
-  if (confirm('¿Estás seguro de eliminar esta asistencia?')) {
-    try {
-      await asistenciaService.delete(id)
-      loadAsistencias()
-    } catch (error) {
-      console.error('Error al eliminar asistencia:', error)
-      alert('Error al eliminar la asistencia')
-    }
+  try {
+    await asistenciaService.delete(id)
+    loadAsistencias()
+  } catch (error) {
+    console.error('Error al eliminar:', error)
   }
 }
 
 onMounted(() => {
   loadAsistencias()
-})
-
-// Cerrar el dropdown cuando se hace click fuera
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.relative')) {
-    showAlumnosList.value = false
-  }
 })
 </script>

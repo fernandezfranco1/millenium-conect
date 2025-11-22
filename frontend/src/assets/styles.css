@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ajustes para combinar Tailwind con Ant Design */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Ajustes para ant-design-vue */
+.ant-btn-primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.ant-btn-primary:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
 * {
   margin: 0;
   padding: 0;
