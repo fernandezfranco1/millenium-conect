@@ -19,6 +19,7 @@
           <a-menu-item key="productos">Productos</a-menu-item>
           <a-menu-item key="ventas">Ventas</a-menu-item>
           <a-menu-item key="eventos">Eventos</a-menu-item>
+          <a-menu-item key="torneo">Torneo</a-menu-item>
         </a-menu>
       </div>
       <a-space>

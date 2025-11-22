@@ -18,11 +18,6 @@
     
     <a-layout-content class="bg-gray-100 p-6">
       <div class="container mx-auto">
-        <a-page-header
-          title="Panel de Control"
-          sub-title="Bienvenido al sistema de gestión de la escuela de taekwondo"
-          class="bg-white mb-6 rounded-lg"
-        />
         
         <a-row :gutter="[16, 16]">
           <a-col :xs="24" :sm="12" :lg="8">
@@ -108,6 +103,18 @@
               </div>
             </a-card>
           </a-col>
+          
+          <a-col :xs="24" :sm="12" :lg="8">
+            <a-card hoverable @click="router.push('/torneo')" class="module-card">
+              <div class="card-icon-wrapper bg-gradient-to-br from-amber-500 to-orange-600">
+                <TrophyOutlined class="card-icon" />
+              </div>
+              <div class="card-content">
+                <h3 class="card-title">Generador de Torneo</h3>
+                <p class="card-description">Crear llaves de competencia</p>
+              </div>
+            </a-card>
+          </a-col>
         </a-row>
       </div>
     </a-layout-content>
@@ -125,7 +132,8 @@ import {
   ShoppingOutlined,
   ShoppingCartOutlined,
   CalendarOutlined,
-  TeamOutlined
+  TeamOutlined,
+  TrophyOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
