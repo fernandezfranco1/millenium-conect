@@ -3,7 +3,7 @@
     <a-layout-header class="bg-blue-600 flex items-center justify-between px-6">
       <div class="flex items-center space-x-4">
         <router-link to="/" class="flex items-center space-x-2 text-2xl font-bold text-white hover:text-gray-200">
-          <img src="/logo.png" alt="Logo" class="w-10 h-10 object-contain bg-white rounded-lg p-1" />
+          <img src="/logo.png" alt="Logo" class="w-10 h-10 object-contain rounded-lg p-1" />
           <span>Millenium Conect</span>
         </router-link>
         <a-menu
@@ -23,16 +23,22 @@
           <a-menu-item key="torneo">Torneo</a-menu-item>
         </a-menu>
       </div>
-      <a-space>
-        <a-avatar style="background-color: #1890ff">
-          <template #icon><UserOutlined /></template>
-        </a-avatar>
-        <span class="text-white">{{ authStore.username }}</span>
-        <a-button type="primary" danger @click="handleLogout">
-          <template #icon><LogoutOutlined /></template>
-          Cerrar Sesión
-        </a-button>
-      </a-space>
+      <a-dropdown>
+        <a-space class="cursor-pointer">
+          <a-avatar style="background-color: #1890ff">
+            <template #icon><UserOutlined /></template>
+          </a-avatar>
+          <span class="text-white">{{ authStore.username }}</span>
+        </a-space>
+        <template #overlay>
+          <a-menu>
+            <a-menu-item key="logout" @click="handleLogout">
+              <LogoutOutlined />
+              <span class="ml-2">Cerrar Sesión</span>
+            </a-menu-item>
+          </a-menu>
+        </template>
+      </a-dropdown>
     </a-layout-header>
     
     <a-layout-content class="bg-gray-100">

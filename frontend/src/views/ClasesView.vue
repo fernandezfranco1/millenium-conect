@@ -23,6 +23,7 @@
               allowClear
             >
               <a-select-option value="Taekwondo">Taekwondo</a-select-option>
+              <a-select-option value="Calistenia">Calistenia</a-select-option>
             </a-select>
           </a-col>
           <a-col :span="8">
@@ -66,7 +67,7 @@
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
-                <a-tooltip title="Gestionar Alumnos">
+                <a-tooltip title="Añadir Alumnos">
                   <a-button 
                     type="primary" 
                     style="background-color: #1890ff" 
@@ -164,6 +165,7 @@
             >
               <a-select v-model:value="form.tipo" placeholder="Seleccione tipo">
                 <a-select-option value="Taekwondo">Taekwondo</a-select-option>
+                <a-select-option value="Calistenia">Calistenia</a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -224,7 +226,7 @@
                 {{ item.nombre }} {{ item.apellido }}
               </template>
               <template #description>
-                DNI: {{ item.dni }} | Categoría: {{ item.categoria }}
+                DNI: {{ item.dni }} 
               </template>
             </a-list-item-meta>
           </a-list-item>

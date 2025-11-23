@@ -1,7 +1,9 @@
 package com.millenium.service;
 
 import com.millenium.model.Alumno;
+import com.millenium.model.Clase;
 import com.millenium.repository.AlumnoRepository;
+import com.millenium.repository.ClaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +19,9 @@ public class AlumnoService {
     
     @Autowired
     private AlumnoRepository alumnoRepository;
+    
+    @Autowired
+    private ClaseRepository claseRepository;
     
     public Page<Alumno> findAll(Pageable pageable) {
         return alumnoRepository.findAll(pageable);
@@ -55,5 +60,9 @@ public class AlumnoService {
             return alumnoRepository.findAll(pageable);
         }
         return alumnoRepository.searchAlumnos(searchTerm.trim(), pageable);
+    }
+    
+    public List<Clase> getClasesByAlumnoId(Long alumnoId) {
+        return claseRepository.findByAlumnoId(alumnoId);
     }
 }

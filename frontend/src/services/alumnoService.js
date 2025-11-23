@@ -49,5 +49,10 @@ export default {
       params: { q: searchTerm, page, size }
     })
     return response.data
+  },
+  
+  async getClases(alumnoId) {
+    const response = await axios.get(`${API_URL}/${alumnoId}/clases`)
+    return response.data
   }
 }

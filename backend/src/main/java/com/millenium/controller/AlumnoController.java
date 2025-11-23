@@ -110,4 +110,9 @@ public class AlumnoController {
         
         return ResponseEntity.ok(response);
     }
+    
+    @GetMapping("/{id}/clases")
+    public ResponseEntity<?> getClasesByAlumnoId(@PathVariable Long id) {
+        return ResponseEntity.ok(alumnoService.getClasesByAlumnoId(id));
+    }
 }

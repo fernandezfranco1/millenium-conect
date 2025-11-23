@@ -14,39 +14,33 @@
       </a-page-header>
       
       <!-- Filtros -->
-      <a-card class="mb-4">
-        <a-row :gutter="16">
+      <a-card class="mb-4" :bodyStyle="{ padding: '16px' }">
+        <a-row :gutter="16" align="middle">
           <a-col :span="6">
-            <a-form-item label="Estado">
-              <a-select v-model:value="filtroEstado" placeholder="Filtrar por estado" allow-clear>
-                <a-select-option value="Pendiente">Pendiente</a-select-option>
-                <a-select-option value="Pagado">Pagado</a-select-option>
-              </a-select>
-            </a-form-item>
+            <a-select v-model:value="filtroEstado" placeholder="Filtrar por estado" allow-clear style="width: 100%">
+              <a-select-option value="Pendiente">Pendiente</a-select-option>
+              <a-select-option value="Pagado">Pagado</a-select-option>
+            </a-select>
           </a-col>
           
           <a-col :span="6">
-            <a-form-item label="Forma de Pago">
-              <a-select v-model:value="filtroFormaPago" placeholder="Filtrar por forma de pago" allow-clear>
-                <a-select-option value="Débito">Débito</a-select-option>
-                <a-select-option value="Efectivo">Efectivo</a-select-option>
-                <a-select-option value="Transferencia">Transferencia</a-select-option>
-                <a-select-option value="Crédito">Crédito</a-select-option>
-              </a-select>
-            </a-form-item>
+            <a-select v-model:value="filtroFormaPago" placeholder="Filtrar por forma de pago" allow-clear style="width: 100%">
+              <a-select-option value="Débito">Débito</a-select-option>
+              <a-select-option value="Efectivo">Efectivo</a-select-option>
+              <a-select-option value="Transferencia">Transferencia</a-select-option>
+              <a-select-option value="Crédito">Crédito</a-select-option>
+            </a-select>
           </a-col>
           
           <a-col :span="8">
-            <a-form-item label="Rango de Fechas">
-              <a-range-picker 
-                v-model:value="rangoFechas" 
-                format="DD/MM/YYYY"
-                style="width: 100%"
-              />
-            </a-form-item>
+            <a-range-picker 
+              v-model:value="rangoFechas" 
+              format="DD/MM/YYYY"
+              style="width: 100%"
+            />
           </a-col>
           
-          <a-col :span="4" class="flex items-end">
+          <a-col :span="4">
             <a-space>
               <a-button type="primary" @click="aplicarFiltros">
                 <template #icon><SearchOutlined /></template>

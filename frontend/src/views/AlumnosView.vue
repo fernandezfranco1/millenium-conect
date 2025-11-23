@@ -44,6 +44,11 @@
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
+                <a-tooltip title="Ver Clases">
+                  <a-button type="default" @click="verClasesAlumno(record)">
+                    <template #icon><UnorderedListOutlined /></template>
+                  </a-button>
+                </a-tooltip>
                 <a-tooltip title="Editar">
                   <a-button type="primary" style="background-color: #52c41a" @click="editAlumno(record)">
                     <EditOutlined />
@@ -228,6 +233,39 @@
         <a-alert v-if="error" :message="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
       </a-form>
     </a-modal>
+    
+    <!-- Modal Ver Clases -->
+    <a-modal
+      v-model:open="showClasesModal"
+      :title="`Clases de ${alumnoSeleccionado?.nombre || ''} ${alumnoSeleccionado?.apellido || ''}`"
+      width="700px"
+      ok-text="Cerrar"
+      :cancel-button-props="{ style: { display: 'none' } }"
+      @ok="closeClasesModal"
+    >
+      <a-table
+        :columns="clasesColumns"
+        :data-source="clasesAlumno"
+        :loading="loadingClases"
+        :pagination="false"
+        :row-key="record => record.idClase"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'instructor'">
+            {{ record.instructor }} {{ record.apellidoInstructor }}
+          </template>
+          <template v-else-if="column.key === 'horario'">
+            {{ formatHorario(record.horario) }}
+          </template>
+          <template v-else-if="column.key === 'tipo'">
+            <a-tag :color="record.tipo === 'Taekwondo' ? 'blue' : 'green'">{{ record.tipo }}</a-tag>
+          </template>
+        </template>
+        <template #emptyText>
+          <a-empty description="Este alumno no está inscripto en ninguna clase" />
+        </template>
+      </a-table>
+    </a-modal>
   </app-layout>
 </template>
 
@@ -242,7 +280,8 @@ import {
   PlusOutlined,
   SearchOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -254,6 +293,12 @@ const error = ref('')
 const searchTerm = ref('')
 const loading = ref(false)
 const formRef = ref()
+
+// Modal de clases
+const showClasesModal = ref(false)
+const alumnoSeleccionado = ref(null)
+const clasesAlumno = ref([])
+const loadingClases = ref(false)
 
 const pagination = ref({
   currentPage: 0,
@@ -287,6 +332,12 @@ const columns = [
   { title: 'Categoría', key: 'categoria', dataIndex: 'categoria' },
   { title: 'Edad', dataIndex: 'edad' },
   { title: 'Acciones', key: 'actions', align: 'center' }
+]
+
+const clasesColumns = [
+  { title: 'Instructor', key: 'instructor', dataIndex: 'instructor' },
+  { title: 'Horario', key: 'horario', dataIndex: 'horario' },
+  { title: 'Tipo', key: 'tipo', dataIndex: 'tipo' }
 ]
 
 const loadAlumnos = async () => {
@@ -417,6 +468,38 @@ const deleteAlumno = async (id) => {
       duration: 3
     })
   }
+}
+
+const verClasesAlumno = async (alumno) => {
+  alumnoSeleccionado.value = alumno
+  showClasesModal.value = true
+  loadingClases.value = true
+  
+  try {
+    clasesAlumno.value = await alumnoService.getClases(alumno.idAlumno)
+  } catch (error) {
+    console.error('Error al cargar clases:', error)
+    notification.error({
+      message: 'Error',
+      description: 'No se pudieron cargar las clases del alumno',
+      duration: 3
+    })
+  } finally {
+    loadingClases.value = false
+  }
+}
+
+const closeClasesModal = () => {
+  showClasesModal.value = false
+  alumnoSeleccionado.value = null
+  clasesAlumno.value = []
+}
+
+const formatHorario = (horario) => {
+  if (!horario) return ''
+  // horario viene como "HH:mm:ss" del backend
+  const [hours, minutes] = horario.split(':')
+  return `${hours}:${minutes}`
 }
 
 onMounted(() => {

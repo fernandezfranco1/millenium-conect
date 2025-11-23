@@ -18,4 +18,7 @@ public interface ClaseRepository extends JpaRepository<Clase, Long> {
     
     @Query("SELECT c FROM Clase c WHERE c.tipo = :tipo AND c.horario = :horario")
     List<Clase> findByTipoAndHorario(@Param("tipo") String tipo, @Param("horario") LocalTime horario);
+    
+    @Query("SELECT c FROM Clase c JOIN c.alumnos a WHERE a.idAlumno = :alumnoId")
+    List<Clase> findByAlumnoId(@Param("alumnoId") Long alumnoId);
 }
