@@ -2,8 +2,9 @@
   <a-layout class="min-h-screen">
     <a-layout-header class="bg-blue-600 flex items-center justify-between px-6">
       <div class="flex items-center space-x-4">
-        <router-link to="/" class="text-2xl font-bold text-white hover:text-gray-200">
-          Millenium Conect
+        <router-link to="/" class="flex items-center space-x-2 text-2xl font-bold text-white hover:text-gray-200">
+          <img src="/logo.png" alt="Logo" class="w-10 h-10 object-contain bg-white rounded-lg p-1" />
+          <span>Millenium Conect</span>
         </router-link>
         <a-menu
           v-model:selectedKeys="selectedKeys"
