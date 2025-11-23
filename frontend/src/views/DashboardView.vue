@@ -2,24 +2,33 @@
   <a-layout class="min-h-screen">
     <a-layout-header class="bg-blue-600">
       <div class="container mx-auto flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">Millenium Conect</h1>
-        <a-space>
-          <a-avatar style="background-color: #1890ff">
-            <template #icon><UserOutlined /></template>
-          </a-avatar>
-          <span class="text-white">{{ authStore.username }}</span>
-          <a-button type="primary" danger @click="handleLogout">
-            <template #icon><LogoutOutlined /></template>
-            Cerrar Sesión
-          </a-button>
-        </a-space>
+        <div class="flex items-center space-x-2">
+          <img src="/logo.png" alt="Logo" class="w-12 h-12 object-contain rounded-lg p-1" />
+          <h1 class="text-2xl font-bold text-white">Millenium Conect</h1>
+        </div>
+        <a-dropdown>
+          <a-space class="cursor-pointer">
+            <a-avatar style="background-color: #1890ff">
+              <template #icon><UserOutlined /></template>
+            </a-avatar>
+            <span class="text-white">{{ authStore.username }}</span>
+          </a-space>
+          <template #overlay>
+            <a-menu>
+              <a-menu-item key="logout" @click="handleLogout">
+                <LogoutOutlined />
+                <span class="ml-2">Cerrar Sesión</span>
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </div>
     </a-layout-header>
     
-    <a-layout-content class="bg-gray-100 p-6">
-      <div class="container mx-auto">
+    <a-layout-content class="bg-gray-100 p-6 overflow-auto">
+      <div class="container mx-auto max-w-screen-xl lg:max-w-[80vw]">
         
-        <a-row :gutter="[16, 16]">
+        <a-row :gutter="[16, 16]" class="dashboard-grid">
           <a-col :xs="24" :sm="12" :lg="8">
             <a-card hoverable @click="router.push('/alumnos')" class="module-card">
               <div class="card-icon-wrapper bg-gradient-to-br from-blue-500 to-blue-600">
@@ -158,6 +167,7 @@ const handleLogout = () => {
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
+  min-height: 140px;
 }
 
 .module-card:hover {
@@ -169,35 +179,39 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80px;
+  height: 60px;
   border-radius: 12px 12px 0 0;
-  margin: -24px -24px 16px -24px;
+  margin: -24px -24px 10px -24px;
 }
 
 .card-icon {
-  font-size: 40px;
+  font-size: 32px;
   color: white;
 }
 
 .card-content {
   text-align: center;
-  padding: 0 8px 4px;
+  padding: 0 8px 0;
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #262626;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .card-description {
-  font-size: 13px;
+  font-size: 11px;
   color: #8c8c8c;
   margin: 0;
 }
 
 :deep(.ant-card-body) {
-  padding: 20px;
+  padding: 16px;
+}
+
+.dashboard-grid {
+  max-height: calc(100vh - 100px);
 }
 </style>
