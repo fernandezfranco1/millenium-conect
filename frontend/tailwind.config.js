@@ -9,6 +9,9 @@ export default {
       colors: {
         primary: '#1e40af',
         secondary: '#64748b',
+      },
+      fontFamily: {
+        sans: ['Roboto', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
       }
     },
   },
