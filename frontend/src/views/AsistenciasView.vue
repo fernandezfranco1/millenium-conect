@@ -1,21 +1,22 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Asistencias"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+          <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nueva Asistencia
+            <span class="hidden sm:inline">Nueva Asistencia</span>
+            <span class="sm:hidden">Nueva</span>
           </a-button>
         </template>
       </a-page-header>
       
-      <a-card class="mb-6" style="max-width: 900px;">
-        <a-row :gutter="16" align="middle">
-          <a-col :span="6">
+      <a-card class="mb-4 sm:mb-6">
+        <a-row :gutter="[16, 16]" align="middle">
+          <a-col :xs="24" :sm="12" :md="6">
             <a-select
               v-model:value="filtroClase"
               placeholder="Filtrar por clase"
@@ -24,7 +25,7 @@
               :options="clasesOptions"
             />
           </a-col>
-          <a-col :span="5">
+          <a-col :xs="24" :sm="12" :md="5">
             <a-select
               v-model:value="filtroEstado"
               placeholder="Filtrar por estado"
@@ -36,16 +37,16 @@
               <a-select-option value="Tardanza">Tardanza</a-select-option>
             </a-select>
           </a-col>
-          <a-col :span="7">
+          <a-col :xs="24" :sm="12" :md="7">
             <a-range-picker
               v-model:value="rangoFechas"
               format="DD/MM/YYYY"
-              placeholder="['Fecha inicio', 'Fecha fin']"
+              placeholder="['Inicio', 'Fin']"
               style="width: 100%"
             />
           </a-col>
-          <a-col :span="6">
-            <a-space>
+          <a-col :xs="24" :sm="12" :md="6">
+            <a-space class="w-full flex-wrap">
               <a-button type="primary" @click="aplicarFiltros">
                 <template #icon><SearchOutlined /></template>
                 Filtrar
@@ -59,7 +60,9 @@
       </a-card>
       
       <a-card>
-        <a-table
+        <div class="overflow-x-auto">
+          <a-table
+            :scroll="{ x: 700 }"
           :columns="columns"
           :data-source="asistenciasFiltradas"
           :loading="loading"
@@ -100,6 +103,7 @@
             </template>
           </template>
         </a-table>
+        </div>
       </a-card>
     </div>
     

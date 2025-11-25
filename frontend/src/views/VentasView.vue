@@ -1,30 +1,31 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Ventas"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+          <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nueva Venta
+            <span class="hidden sm:inline">Nueva Venta</span>
+            <span class="sm:hidden">Nueva</span>
           </a-button>
         </template>
       </a-page-header>
       
-      <a-card class="mb-6" style="max-width: 800px;">
-        <a-row :gutter="16" align="middle">
-          <a-col :span="16">
+      <a-card class="mb-4 sm:mb-6">
+        <a-row :gutter="[16, 16]" align="middle">
+          <a-col :xs="24" :sm="16">
             <a-range-picker
               v-model:value="rangoFechas"
               format="DD/MM/YYYY"
-              placeholder="['Fecha inicio', 'Fecha fin']"
+              placeholder="['Inicio', 'Fin']"
               style="width: 100%"
               @change="filtrarPorFechas"
             />
           </a-col>
-          <a-col :span="8">
+          <a-col :xs="24" :sm="8">
             <a-button type="default" @click="limpiarFiltros" block>
               Limpiar filtros
             </a-button>
@@ -33,12 +34,14 @@
       </a-card>
       
       <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="ventas"
-          :loading="loading"
-          :row-key="record => record.idVenta"
-        >
+        <div class="overflow-x-auto">
+          <a-table
+            :columns="columns"
+            :data-source="ventas"
+            :loading="loading"
+            :row-key="record => record.idVenta"
+            :scroll="{ x: 600 }"
+          >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'producto'">
               {{ record.producto?.nombre }}
@@ -72,6 +75,7 @@
             </template>
           </template>
         </a-table>
+        </div>
         
         <div class="mt-4 flex justify-end">
           <a-statistic 

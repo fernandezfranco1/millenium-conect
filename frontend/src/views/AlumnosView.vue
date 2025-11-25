@@ -1,23 +1,24 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Alumnos"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; editingAlumno = null; resetForm()">
+          <a-button type="primary" :size="isMobile ? 'middle' : 'large'" @click="showModal = true; editingAlumno = null; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nuevo Alumno
+            <span class="hidden sm:inline">Nuevo Alumno</span>
+            <span class="sm:hidden">Nuevo</span>
           </a-button>
         </template>
       </a-page-header>
       
-      <a-card class="mb-6">
+      <a-card class="mb-4 sm:mb-6">
         <a-input-search
           v-model:value="searchTerm"
-          placeholder="Buscar alumno por nombre o apellido..."
-          size="large"
+          placeholder="Buscar alumno..."
+          :size="isMobile ? 'middle' : 'large'"
           @search="buscarAlumnos"
           @input="buscarAlumnos"
         >
@@ -28,13 +29,15 @@
       </a-card>
       
       <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="alumnos"
-          :pagination="false"
-          :loading="loading"
-          :row-key="record => record.idAlumno"
-        >
+        <div class="overflow-x-auto">
+          <a-table
+            :columns="columns"
+            :data-source="alumnos"
+            :pagination="false"
+            :loading="loading"
+            :row-key="record => record.idAlumno"
+            :scroll="{ x: 800 }"
+          >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'nombre'">
               {{ record.nombre }} {{ record.apellido }}
@@ -74,6 +77,7 @@
             </template>
           </template>
         </a-table>
+        </div>
         
         <div class="mt-4 flex justify-between items-center">
           <div class="text-sm text-gray-700">
@@ -309,6 +313,9 @@ const error = ref('')
 const searchTerm = ref('')
 const loading = ref(false)
 const formRef = ref()
+
+// Detectar si es móvil
+const isMobile = computed(() => window.innerWidth < 640)
 
 // Modal de clases
 const showClasesModal = ref(false)

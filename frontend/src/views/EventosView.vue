@@ -1,21 +1,22 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Eventos"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+          <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nuevo Evento
+            <span class="hidden sm:inline">Nuevo Evento</span>
+            <span class="sm:hidden">Nuevo</span>
           </a-button>
         </template>
       </a-page-header>
       
-      <a-card class="mb-6" style="max-width: 800px;">
-        <a-row :gutter="16" align="middle">
-          <a-col :span="8">
+      <a-card class="mb-4 sm:mb-6">
+        <a-row :gutter="[16, 16]" align="middle">
+          <a-col :xs="24" :sm="12" :md="8">
             <a-select
               v-model:value="filtroTipo"
               placeholder="Filtrar por tipo"
@@ -28,16 +29,16 @@
               <a-select-option value="Torneo">Torneo</a-select-option>
             </a-select>
           </a-col>
-          <a-col :span="10">
+          <a-col :xs="24" :sm="12" :md="10">
             <a-range-picker
               v-model:value="rangoFechas"
               format="DD/MM/YYYY"
-              placeholder="['Fecha inicio', 'Fecha fin']"
+              placeholder="['Inicio', 'Fin']"
               style="width: 100%"
               @change="filtrarPorFechas"
             />
           </a-col>
-          <a-col :span="6">
+          <a-col :xs="24" :sm="24" :md="6">
             <a-button type="default" @click="limpiarFiltros" block>
               Limpiar filtros
             </a-button>
@@ -46,12 +47,14 @@
       </a-card>
       
       <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="eventos"
-          :loading="loading"
-          :row-key="record => record.idEvento"
-        >
+        <div class="overflow-x-auto">
+          <a-table
+            :columns="columns"
+            :data-source="eventos"
+            :loading="loading"
+            :row-key="record => record.idEvento"
+            :scroll="{ x: 600 }"
+          >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'tipo'">
               <a-tag :color="getTipoColor(record.tipo)">
@@ -81,6 +84,7 @@
             </template>
           </template>
         </a-table>
+        </div>
       </a-card>
     </div>
     

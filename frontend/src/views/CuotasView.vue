@@ -1,14 +1,15 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Cuotas"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+          <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nueva Cuota
+            <span class="hidden sm:inline">Nueva Cuota</span>
+            <span class="sm:hidden">Nueva</span>
           </a-button>
         </template>
       </a-page-header>
@@ -55,13 +56,15 @@
       </a-card>
       
       <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="cuotas"
-          :pagination="false"
-          :loading="loading"
-          :row-key="record => record.idCuota"
-        >
+        <div class="overflow-x-auto">
+          <a-table
+            :columns="columns"
+            :data-source="cuotas"
+            :pagination="false"
+            :loading="loading"
+            :row-key="record => record.idCuota"
+            :scroll="{ x: 900 }"
+          >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'alumno'">
               {{ record.alumno?.nombre }} {{ record.alumno?.apellido }}
@@ -105,6 +108,7 @@
             </template>
           </template>
         </a-table>
+        </div>
         
         <div class="mt-4 flex justify-between items-center">
           <div class="text-sm text-gray-700">

@@ -1,23 +1,24 @@
 <template>
   <app-layout>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
       <a-page-header
         title="Gestión de Productos"
-        class="bg-white mb-6 rounded-lg"
+        class="bg-white mb-4 sm:mb-6 rounded-lg"
       >
         <template #extra>
-          <a-button type="primary" size="large" @click="showModal = true; resetForm()">
+          <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
-            Nuevo Producto
+            <span class="hidden sm:inline">Nuevo Producto</span>
+            <span class="sm:hidden">Nuevo</span>
           </a-button>
         </template>
       </a-page-header>
       
-      <a-card class="mb-6">
+      <a-card class="mb-4 sm:mb-6">
         <a-input-search
           v-model:value="searchTerm"
-          placeholder="Buscar producto por nombre..."
-          size="large"
+          placeholder="Buscar producto..."
+          size="middle"
           @search="buscarProductos"
           @input="buscarProductos"
         >
@@ -28,12 +29,14 @@
       </a-card>
       
       <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="productos"
-          :loading="loading"
-          :row-key="record => record.idProducto"
-        >
+        <div class="overflow-x-auto">
+          <a-table
+            :columns="columns"
+            :data-source="productos"
+            :loading="loading"
+            :row-key="record => record.idProducto"
+            :scroll="{ x: 700 }"
+          >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'precioVenta'">
               {{ formatCurrency(record.precioVenta) }}
@@ -66,6 +69,7 @@
             </template>
           </template>
         </a-table>
+        </div>
       </a-card>
     </div>
     

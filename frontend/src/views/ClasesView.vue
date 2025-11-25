@@ -13,9 +13,9 @@
         </template>
       </a-page-header>
       
-      <a-card class="mb-6" style="max-width: 800px;">
-        <a-row :gutter="16" align="middle">
-          <a-col :span="8">
+      <a-card class="mb-4 sm:mb-6">
+        <a-row :gutter="[16, 16]" align="middle">
+          <a-col :xs="24" :sm="12" :md="8">
             <a-select
               v-model:value="filtroTipo"
               placeholder="Filtrar por tipo"
@@ -26,7 +26,7 @@
               <a-select-option value="Calistenia">Calistenia</a-select-option>
             </a-select>
           </a-col>
-          <a-col :span="8">
+          <a-col :xs="24" :sm="12" :md="8">
             <a-time-picker
               v-model:value="filtroHorario"
               placeholder="Filtrar por horario"
@@ -34,8 +34,8 @@
               style="width: 100%"
             />
           </a-col>
-          <a-col :span="8">
-            <a-space>
+          <a-col :xs="24" :sm="24" :md="8">
+            <a-space class="w-full" :class="{ 'justify-center': true }">
               <a-button type="primary" @click="aplicarFiltros">
                 <template #icon><SearchOutlined /></template>
                 Filtrar
@@ -49,7 +49,9 @@
       </a-card>
       
       <a-card>
-        <a-table
+        <div class="overflow-x-auto">
+          <a-table
+            :scroll="{ x: 600 }"
           :columns="columns"
           :data-source="clases"
           :loading="loading"
@@ -101,6 +103,7 @@
             </template>
           </template>
         </a-table>
+        </div>
       </a-card>
     </div>
     
