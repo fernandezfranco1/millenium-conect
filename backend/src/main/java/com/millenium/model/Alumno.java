@@ -49,6 +49,10 @@ public class Alumno {
     
     @Size(max = 20)
     @Column(length = 20)
+    private String disciplina;
+    
+    @Size(max = 20)
+    @Column(length = 20)
     private String genero;
     
     @NotNull(message = "La fecha de nacimiento es obligatoria")

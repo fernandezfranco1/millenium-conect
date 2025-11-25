@@ -39,8 +39,12 @@
             <template v-if="column.key === 'nombre'">
               {{ record.nombre }} {{ record.apellido }}
             </template>
+            <template v-else-if="column.key === 'disciplina'">
+              <a-tag :color="record.disciplina === 'Taekwondo' ? 'blue' : 'green'">{{ record.disciplina }}</a-tag>
+            </template>
             <template v-else-if="column.key === 'categoria'">
-              <a-tag color="blue">{{ record.categoria }}</a-tag>
+              <a-tag v-if="record.categoria" color="blue">{{ record.categoria }}</a-tag>
+              <span v-else class="text-gray-400">N/A</span>
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-space>
@@ -205,9 +209,21 @@
         </a-row>
         
         <a-form-item
+          label="Disciplina"
+          name="disciplina"
+          :rules="[{ required: true, message: 'La disciplina es obligatoria' }]"
+        >
+          <a-select v-model:value="form.disciplina" placeholder="Seleccionar disciplina" @change="onDisciplinaChange">
+            <a-select-option value="Taekwondo">Taekwondo</a-select-option>
+            <a-select-option value="Calistenia">Calistenia</a-select-option>
+          </a-select>
+        </a-form-item>
+        
+        <a-form-item
+          v-if="form.disciplina === 'Taekwondo'"
           label="Categoría / Cinturón"
           name="categoria"
-          :rules="[{ required: true, message: 'La categoría es obligatoria' }]"
+          :rules="form.disciplina === 'Taekwondo' ? [{ required: true, message: 'La categoría es obligatoria' }] : []"
         >
           <a-select v-model:value="form.categoria" placeholder="Seleccionar categoría">
             <a-select-option value="Blanco">Blanco</a-select-option>
@@ -320,6 +336,7 @@ const form = ref({
   dni: '',
   telefono: '',
   peso: null,
+  disciplina: '',
   categoria: '',
   genero: '',
   fechaNacimiento: null
@@ -329,6 +346,7 @@ const columns = [
   { title: 'Nombre', key: 'nombre', dataIndex: 'nombre' },
   { title: 'DNI', dataIndex: 'dni' },
   { title: 'Teléfono', dataIndex: 'telefono' },
+  { title: 'Disciplina', key: 'disciplina', dataIndex: 'disciplina' },
   { title: 'Categoría', key: 'categoria', dataIndex: 'categoria' },
   { title: 'Edad', dataIndex: 'edad' },
   { title: 'Acciones', key: 'actions', align: 'center' }
@@ -396,11 +414,19 @@ const resetForm = () => {
     dni: '',
     telefono: '',
     peso: null,
+    disciplina: '',
     categoria: '',
     genero: '',
     fechaNacimiento: null
   }
   error.value = ''
+}
+
+const onDisciplinaChange = () => {
+  // Limpiar categoría si se cambia a Calistenia
+  if (form.value.disciplina !== 'Taekwondo') {
+    form.value.categoria = ''
+  }
 }
 
 const closeModal = () => {
