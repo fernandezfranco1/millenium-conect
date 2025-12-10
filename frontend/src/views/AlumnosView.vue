@@ -9,7 +9,6 @@
           <a-button type="primary" :size="isMobile ? 'middle' : 'large'" @click="showModal = true; editingAlumno = null; resetForm()">
             <template #icon><PlusOutlined /></template>
             <span class="hidden sm:inline">Nuevo Alumno</span>
-            <span class="sm:hidden">Nuevo</span>
           </a-button>
         </template>
       </a-page-header>

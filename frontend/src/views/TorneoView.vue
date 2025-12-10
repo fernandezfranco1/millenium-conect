@@ -20,24 +20,27 @@
                   <a-select-option value="Infantil">Infantil</a-select-option>
                   <a-select-option value="Cadete">Cadete</a-select-option>
                   <a-select-option value="Juvenil">Juvenil</a-select-option>
+                  <a-select-option value="Adulto">Adulto</a-select-option>
                   <a-select-option value="Senior">Senior</a-select-option>
                 </a-select>
               </a-form-item>
               
               <a-divider>Participantes ({{ participantes.length }})</a-divider>
               
-              <a-form-item label="Buscar y agregar alumno">
-                <a-select
-                  v-model:value="alumnoSeleccionado"
-                  show-search
-                  placeholder="Buscar por nombre o DNI"
-                  style="width: 100%"
-                  :filter-option="false"
-                  :not-found-content="isSearching ? 'Buscando...' : 'No se encontraron alumnos'"
-                  :options="alumnosOptions"
-                  @search="searchAlumnos"
-                  @change="agregarParticipante"
-                />
+              <a-form-item label="Agregar participante">
+                <a-input-group compact>
+                  <a-input 
+                    v-model:value="nombreManual" 
+                    placeholder="Nombre del participante"
+                    style="width: 70%"
+                    @pressEnter="agregarParticipanteManual"
+                  />
+                  <a-button type="primary" style="width: 30%" @click="agregarParticipanteManual">
+                    <template #icon><PlusOutlined /></template>
+                    Agregar
+                  </a-button>
+                </a-input-group>
+                <div class="text-xs text-gray-500 mt-1">Escribe el nombre y presiona Enter o haz clic en Agregar</div>
               </a-form-item>
               
               <a-list
@@ -49,11 +52,47 @@
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <template #actions>
-                      <a-button type="link" danger size="small" @click="quitarParticipante(item.idAlumno)">
+                      <a-button 
+                        v-if="editandoId !== item.id"
+                        type="link" 
+                        size="small" 
+                        @click="iniciarEdicion(item)"
+                      >
+                        <EditOutlined />
+                      </a-button>
+                      <a-button 
+                        v-if="editandoId === item.id"
+                        type="link" 
+                        size="small"
+                        @click="guardarEdicion(item.id)"
+                      >
+                        Guardar
+                      </a-button>
+                      <a-button 
+                        v-if="editandoId === item.id"
+                        type="link" 
+                        size="small"
+                        @click="cancelarEdicion"
+                      >
+                        Cancelar
+                      </a-button>
+                      <a-button 
+                        v-if="editandoId !== item.id"
+                        type="link" 
+                        danger 
+                        size="small" 
+                        @click="quitarParticipante(item.id)"
+                      >
                         <DeleteOutlined />
                       </a-button>
                     </template>
-                    {{ item.nombre }} {{ item.apellido }}
+                    <a-input 
+                      v-if="editandoId === item.id"
+                      v-model:value="nombreEditado"
+                      @pressEnter="guardarEdicion(item.id)"
+                      style="width: 100%"
+                    />
+                    <span v-else>{{ item.nombre }}</span>
                   </a-list-item>
                 </template>
               </a-list>
@@ -156,90 +195,118 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { notification } from 'ant-design-vue'
-import alumnoService from '@/services/alumnoService'
 import AppLayout from '@/components/AppLayout.vue'
 import {
   DeleteOutlined,
   TrophyOutlined,
   ReloadOutlined,
-  PrinterOutlined
+  PrinterOutlined,
+  PlusOutlined,
+  EditOutlined
 } from '@ant-design/icons-vue'
 
 const nombreTorneo = ref('')
 const categoriaSeleccionada = ref(null)
 const participantes = ref([])
-const alumnoSeleccionado = ref(null)
-const alumnosEncontrados = ref([])
-const isSearching = ref(false)
-const searchTimeout = ref(null)
+const nombreManual = ref('')
 const bracketGenerado = ref(false)
 const bracket = ref([])
 const campeon = ref(null)
+const editandoId = ref(null)
+const nombreEditado = ref('')
+let contadorManual = 0
 
-const alumnosOptions = computed(() => {
-  return alumnosEncontrados.value.map(alumno => ({
-    label: `${alumno.nombre} ${alumno.apellido} - DNI: ${alumno.dni} (${alumno.categoria})`,
-    value: alumno.idAlumno,
-    alumno: alumno
-  }))
-})
-
-const searchAlumnos = async (value) => {
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value)
-  }
-  
-  if (!value || value.length < 2) {
-    alumnosEncontrados.value = []
-    return
-  }
-  
-  searchTimeout.value = setTimeout(async () => {
-    isSearching.value = true
-    try {
-      const response = await alumnoService.searchAlumnos(value, 0, 10)
-      alumnosEncontrados.value = response.content
-    } catch (error) {
-      console.error('Error al buscar alumnos:', error)
-      alumnosEncontrados.value = []
-    } finally {
-      isSearching.value = false
-    }
-  }, 500)
-}
-
-const agregarParticipante = () => {
-  if (!alumnoSeleccionado.value) return
-  
-  const option = alumnosOptions.value.find(opt => opt.value === alumnoSeleccionado.value)
-  if (!option) return
-  
-  const alumno = option.alumno
-  
-  if (participantes.value.find(p => p.idAlumno === alumno.idAlumno)) {
+const agregarParticipanteManual = () => {
+  if (!nombreManual.value || nombreManual.value.trim().length < 3) {
     notification.warning({
-      message: 'Participante duplicado',
-      description: 'Este alumno ya está en la lista de participantes',
+      message: 'Nombre requerido',
+      description: 'Debes ingresar un nombre de al menos 3 caracteres',
       duration: 2
     })
-    alumnoSeleccionado.value = null
     return
   }
   
-  participantes.value.push(alumno)
-  alumnoSeleccionado.value = null
+  const nombreLimpio = nombreManual.value.trim()
+  
+  // Verificar si ya existe un participante con ese nombre
+  if (participantes.value.find(p => p.nombre.toLowerCase() === nombreLimpio.toLowerCase())) {
+    notification.warning({
+      message: 'Participante duplicado',
+      description: 'Ya existe un participante con ese nombre',
+      duration: 2
+    })
+    return
+  }
+  
+  contadorManual++
+  participantes.value.push({
+    id: `manual_${contadorManual}`,
+    nombre: nombreLimpio,
+    esManual: true
+  })
   
   notification.success({
     message: 'Participante agregado',
-    description: `${alumno.nombre} ${alumno.apellido} ha sido agregado al torneo`,
+    description: `${nombreLimpio} ha sido agregado al torneo`,
     duration: 2
   })
+  
+  nombreManual.value = ''
 }
 
-const quitarParticipante = (idAlumno) => {
-  participantes.value = participantes.value.filter(p => p.idAlumno !== idAlumno)
+const quitarParticipante = (id) => {
+  participantes.value = participantes.value.filter(p => p.id !== id)
+}
+
+const iniciarEdicion = (item) => {
+  editandoId.value = item.id
+  nombreEditado.value = item.nombre
+}
+
+const cancelarEdicion = () => {
+  editandoId.value = null
+  nombreEditado.value = ''
+}
+
+const guardarEdicion = (id) => {
+  const nombreLimpio = nombreEditado.value.trim()
+  
+  if (!nombreLimpio || nombreLimpio.length < 3) {
+    notification.warning({
+      message: 'Nombre inválido',
+      description: 'El nombre debe tener al menos 3 caracteres',
+      duration: 2
+    })
+    return
+  }
+  
+  // Verificar si ya existe otro participante con ese nombre
+  const existeDuplicado = participantes.value.find(
+    p => p.id !== id && p.nombre.toLowerCase() === nombreLimpio.toLowerCase()
+  )
+  
+  if (existeDuplicado) {
+    notification.warning({
+      message: 'Participante duplicado',
+      description: 'Ya existe un participante con ese nombre',
+      duration: 2
+    })
+    return
+  }
+  
+  const participante = participantes.value.find(p => p.id === id)
+  if (participante) {
+    participante.nombre = nombreLimpio
+    notification.success({
+      message: 'Nombre actualizado',
+      description: 'El nombre del participante ha sido actualizado',
+      duration: 2
+    })
+  }
+  
+  cancelarEdicion()
 }
 
 const generarLlaves = () => {
@@ -267,8 +334,8 @@ const generarLlaves = () => {
   const firstRound = []
   for (let i = 0; i < shuffled.length; i += 2) {
     firstRound.push({
-      participant1: shuffled[i] ? `${shuffled[i].nombre} ${shuffled[i].apellido}` : null,
-      participant2: shuffled[i + 1] ? `${shuffled[i + 1].nombre} ${shuffled[i + 1].apellido}` : null,
+      participant1: shuffled[i] ? shuffled[i].nombre : null,
+      participant2: shuffled[i + 1] ? shuffled[i + 1].nombre : null,
       score1: null,
       score2: null,
       winner: null

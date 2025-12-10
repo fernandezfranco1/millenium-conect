@@ -9,7 +9,6 @@
           <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
             <span class="hidden sm:inline">Nueva Asistencia</span>
-            <span class="sm:hidden">Nueva</span>
           </a-button>
         </template>
       </a-page-header>

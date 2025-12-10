@@ -9,7 +9,6 @@
           <a-button type="primary" size="middle" @click="showModal = true; resetForm()">
             <template #icon><PlusOutlined /></template>
             <span class="hidden sm:inline">Nuevo Producto</span>
-            <span class="sm:hidden">Nuevo</span>
           </a-button>
         </template>
       </a-page-header>
