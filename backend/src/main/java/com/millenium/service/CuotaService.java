@@ -38,6 +38,18 @@ public class CuotaService {
     }
     
     public Cuota save(Cuota cuota) {
+        // Validar que si el estado es "Pagado", los campos obligatorios estén presentes
+        if ("Pagado".equals(cuota.getEstado())) {
+            if (cuota.getMonto() == null) {
+                throw new IllegalArgumentException("El monto es obligatorio para cuotas pagadas");
+            }
+            if (cuota.getFechaPago() == null) {
+                throw new IllegalArgumentException("La fecha de pago es obligatoria para cuotas pagadas");
+            }
+            if (cuota.getFormaPago() == null || cuota.getFormaPago().isBlank()) {
+                throw new IllegalArgumentException("La forma de pago es obligatoria para cuotas pagadas");
+            }
+        }
         return cuotaRepository.save(cuota);
     }
     

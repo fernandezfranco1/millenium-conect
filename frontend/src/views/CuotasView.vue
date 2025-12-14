@@ -176,6 +176,17 @@
           </a-select>
         </a-form-item>
         
+        <a-form-item
+          label="Estado"
+          name="estado"
+          :rules="[{ required: true, message: 'El estado es obligatorio' }]"
+        >
+          <a-select v-model:value="form.estado">
+            <a-select-option value="Pendiente">Pendiente</a-select-option>
+            <a-select-option value="Pagado">Pagado</a-select-option>
+          </a-select>
+        </a-form-item>
+        
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item
@@ -197,7 +208,7 @@
             <a-form-item
               label="Monto"
               name="monto"
-              :rules="[{ required: true, message: 'El monto es obligatorio' }]"
+              :rules="[{ required: form.estado === 'Pagado', message: 'El monto es obligatorio' }]"
             >
               <a-input-number
                 v-model:value="form.monto"
@@ -207,6 +218,7 @@
                 style="width: 100%"
                 :formatter="value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
                 :parser="value => value.replace(/\$\s?|(,*)/g, '')"
+                :disabled="form.estado === 'Pendiente'"
               />
             </a-form-item>
           </a-col>
@@ -217,13 +229,14 @@
             <a-form-item
               label="Fecha de Pago"
               name="fechaPago"
-              :rules="[{ required: true, message: 'La fecha es obligatoria' }]"
+              :rules="[{ required: form.estado === 'Pagado', message: 'La fecha es obligatoria' }]"
             >
               <a-date-picker
                 v-model:value="form.fechaPago"
                 style="width: 100%"
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
+                :disabled="form.estado === 'Pendiente'"
               />
             </a-form-item>
           </a-col>
@@ -232,9 +245,9 @@
             <a-form-item
               label="Forma de Pago"
               name="formaPago"
-              :rules="[{ required: true, message: 'La forma de pago es obligatoria' }]"
+              :rules="[{ required: form.estado === 'Pagado', message: 'La forma de pago es obligatoria' }]"
             >
-              <a-select v-model:value="form.formaPago">
+              <a-select v-model:value="form.formaPago" :disabled="form.estado === 'Pendiente'">
                 <a-select-option value="Débito">Débito</a-select-option>
                 <a-select-option value="Efectivo">Efectivo</a-select-option>
                 <a-select-option value="Transferencia">Transferencia</a-select-option>
@@ -243,17 +256,6 @@
             </a-form-item>
           </a-col>
         </a-row>
-        
-        <a-form-item
-          label="Estado"
-          name="estado"
-          :rules="[{ required: true, message: 'El estado es obligatorio' }]"
-        >
-          <a-select v-model:value="form.estado">
-            <a-select-option value="Pendiente">Pendiente</a-select-option>
-            <a-select-option value="Pagado">Pagado</a-select-option>
-          </a-select>
-        </a-form-item>
         
         <a-form-item label="Comprobante (opcional)">
           <a-upload
@@ -489,12 +491,15 @@ const saveCuota = async () => {
     const cuotaData = {
       alumno: { idAlumno: form.value.alumno },
       mesPago: form.value.mesPago,
-      monto: parseFloat(form.value.monto),
-      fechaPago: form.value.fechaPago,
-      formaPago: form.value.formaPago,
+      monto: form.value.estado === 'Pagado' ? parseFloat(form.value.monto) : null,
+      fechaPago: form.value.estado === 'Pagado' ? form.value.fechaPago : null,
+      formaPago: form.value.estado === 'Pagado' ? form.value.formaPago : null,
       estado: form.value.estado,
       comprobante: form.value.comprobante || null
     }
+    
+    console.log('Enviando cuota:', cuotaData)
+    console.log('Token:', localStorage.getItem('token'))
     
     if (editingCuota.value) {
       await cuotaService.update(editingCuota.value.idCuota, cuotaData)

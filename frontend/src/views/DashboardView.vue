@@ -25,7 +25,7 @@
       </div>
     </a-layout-header>
     
-    <a-layout-content class="bg-gray-100 p-6 overflow-auto">
+    <a-layout-content class="tatami-background p-6 overflow-auto">
       <div class="container mx-auto max-w-screen-xl lg:max-w-[80vw]">
         
         <a-row :gutter="[16, 16]" class="dashboard-grid">
@@ -213,5 +213,18 @@ const handleLogout = () => {
 
 .dashboard-grid {
   max-height: calc(100vh - 100px);
+}
+
+.tatami-background {
+  background: 
+    linear-gradient(135deg, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+    linear-gradient(225deg, rgba(220, 38, 38, 0.03) 0%, transparent 50%),
+    linear-gradient(45deg, rgba(15, 23, 42, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(220, 38, 38, 0.05) 0%, transparent 50%),
+    linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  background-size: 100% 100%;
+  min-height: calc(100vh - 64px);
+  position: relative;
 }
 </style>

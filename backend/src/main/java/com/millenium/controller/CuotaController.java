@@ -82,9 +82,28 @@ public class CuotaController {
     }
     
     @PostMapping
-    public ResponseEntity<Cuota> create(@Valid @RequestBody Cuota cuota) {
-        Cuota saved = cuotaService.save(cuota);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> create(@RequestBody Cuota cuota) {
+        try {
+            System.out.println("=== Recibiendo cuota ===");
+            System.out.println("Estado: " + cuota.getEstado());
+            System.out.println("Monto: " + cuota.getMonto());
+            System.out.println("Fecha Pago: " + cuota.getFechaPago());
+            System.out.println("Forma Pago: " + cuota.getFormaPago());
+            
+            Cuota saved = cuotaService.save(cuota);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error de validación: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            System.out.println("Error inesperado: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error interno del servidor: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping("/upload")
@@ -134,11 +153,17 @@ public class CuotaController {
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<Cuota> update(@PathVariable Long id, @Valid @RequestBody Cuota cuota) {
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Cuota cuota) {
         return cuotaService.findById(id)
                 .map(existing -> {
-                    cuota.setIdCuota(id);
-                    return ResponseEntity.ok(cuotaService.save(cuota));
+                    try {
+                        cuota.setIdCuota(id);
+                        return ResponseEntity.ok(cuotaService.save(cuota));
+                    } catch (IllegalArgumentException e) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", e.getMessage());
+                        return ResponseEntity.badRequest().body(error);
+                    }
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

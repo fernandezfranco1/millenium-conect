@@ -26,13 +26,11 @@ public class Cuota {
     @NotNull(message = "El alumno es obligatorio")
     private Alumno alumno;
     
-    @NotNull(message = "El monto es obligatorio")
     @DecimalMin(value = "0.0", message = "El monto debe ser positivo")
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal monto;
     
-    @NotNull(message = "La fecha de pago es obligatoria")
-    @Column(name = "fecha_pago", nullable = false)
+    @Column(name = "fecha_pago")
     private LocalDate fechaPago;
     
     @NotBlank(message = "El mes de pago es obligatorio")
@@ -40,9 +38,8 @@ public class Cuota {
     @Column(name = "mes_pago", nullable = false, length = 7)
     private String mesPago; // Formato: YYYY-MM (2025-01)
     
-    @NotBlank(message = "La forma de pago es obligatoria")
     @Size(max = 50)
-    @Column(name = "forma_pago", nullable = false, length = 50)
+    @Column(name = "forma_pago", length = 50)
     private String formaPago; // Débito, Efectivo, Transferencia, Crédito
     
     @NotBlank(message = "El estado es obligatorio")

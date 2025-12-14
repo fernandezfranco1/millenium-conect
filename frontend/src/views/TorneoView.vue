@@ -191,6 +191,52 @@
         </a-col>
       </a-row>
     </div>
+
+    <!-- Modal de Selección de BYEs -->
+    <a-modal
+      v-model:open="showByeModal"
+      title="Selección de Participantes con BYE"
+      width="600px"
+      :closable="false"
+      :maskClosable="false"
+    >
+      <template #footer>
+        <a-button key="random" type="default" @click="sortearByes">
+          <template #icon><ThunderboltOutlined /></template>
+          Sortear Automáticamente
+        </a-button>
+        <a-button key="manual" type="primary" @click="confirmarByesManual" :disabled="byesSeleccionados.length !== numeroByesNecesarios">
+          Confirmar Selección
+        </a-button>
+      </template>
+
+      <a-alert
+        :message="`Se necesitan ${numeroByesNecesarios} participante(s) que pasen directo a la siguiente ronda`"
+        description="Puedes seleccionar manualmente o hacer un sorteo automático"
+        type="info"
+        show-icon
+        class="mb-4"
+      />
+
+      <div class="mb-3 text-sm text-gray-600">
+        Seleccionados: {{ byesSeleccionados.length }} / {{ numeroByesNecesarios }}
+      </div>
+
+      <a-checkbox-group v-model:value="byesSeleccionados" style="width: 100%">
+        <div class="space-y-2">
+          <div
+            v-for="participante in participantes"
+            :key="participante.id"
+            class="p-3 border rounded hover:bg-gray-50 transition-colors"
+            :class="{ 'bg-blue-50 border-blue-300': byesSeleccionados.includes(participante.id) }"
+          >
+            <a-checkbox :value="participante.id" :disabled="byesSeleccionados.length >= numeroByesNecesarios && !byesSeleccionados.includes(participante.id)">
+              <span class="font-medium">{{ participante.nombre }}</span>
+            </a-checkbox>
+          </div>
+        </div>
+      </a-checkbox-group>
+    </a-modal>
   </app-layout>
 </template>
 
@@ -204,7 +250,8 @@ import {
   ReloadOutlined,
   PrinterOutlined,
   PlusOutlined,
-  EditOutlined
+  EditOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons-vue'
 
 const nombreTorneo = ref('')
@@ -216,6 +263,10 @@ const bracket = ref([])
 const campeon = ref(null)
 const editandoId = ref(null)
 const nombreEditado = ref('')
+const showByeModal = ref(false)
+const byesSeleccionados = ref([])
+const numeroByesNecesarios = ref(0)
+const participantesParaBracket = ref([])
 let contadorManual = 0
 
 const agregarParticipanteManual = () => {
@@ -319,36 +370,93 @@ const generarLlaves = () => {
     return
   }
   
-  // Mezclar participantes aleatoriamente
-  const shuffled = [...participantes.value].sort(() => Math.random() - 0.5)
+  // Calcular cuántos participantes deben pasar directo para que la primera ronda sea par
+  // Por ejemplo: 5 participantes -> 4 compiten (2 matches), 1 pasa directo
+  // 7 participantes -> 6 compiten (3 matches), 1 pasa directo
+  // 9 participantes -> 8 compiten (4 matches), 1 pasa directo
   
-  // Calcular siguiente potencia de 2
-  const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(shuffled.length)))
+  const total = participantes.value.length
+  const esPotenciaDe2 = (total & (total - 1)) === 0
   
-  // Rellenar con BYEs si es necesario
-  while (shuffled.length < nextPowerOf2) {
-    shuffled.push(null)
+  if (esPotenciaDe2) {
+    // Es potencia de 2, no se necesitan BYEs
+    generarBracketConParticipantes([...participantes.value])
+    return
   }
   
-  // Crear primera ronda
+  // Calcular la potencia de 2 anterior (cuántos pueden competir en primera ronda)
+  const potenciaAnterior = Math.pow(2, Math.floor(Math.log2(total)))
+  const byesNecesarios = total - potenciaAnterior
+  
+  // Si se necesitan BYEs, mostrar modal de selección
+  numeroByesNecesarios.value = byesNecesarios
+  byesSeleccionados.value = []
+  showByeModal.value = true
+}
+
+const sortearByes = () => {
+  // Sortear aleatoriamente los participantes que tendrán BYE
+  const shuffled = [...participantes.value].sort(() => Math.random() - 0.5)
+  byesSeleccionados.value = shuffled.slice(0, numeroByesNecesarios.value).map(p => p.id)
+  
+  notification.success({
+    message: 'Sorteo realizado',
+    description: `${numeroByesNecesarios.value} participante(s) seleccionado(s) aleatoriamente`,
+    duration: 2
+  })
+}
+
+const confirmarByesManual = () => {
+  if (byesSeleccionados.value.length !== numeroByesNecesarios.value) {
+    notification.warning({
+      message: 'Selección incompleta',
+      description: `Debes seleccionar exactamente ${numeroByesNecesarios.value} participante(s)`,
+      duration: 2
+    })
+    return
+  }
+  
+  showByeModal.value = false
+  
+  // Separar participantes con BYE de los que compiten en primera ronda
+  const conBye = participantes.value.filter(p => byesSeleccionados.value.includes(p.id))
+  const sinBye = participantes.value.filter(p => !byesSeleccionados.value.includes(p.id))
+  
+  generarBracketConParticipantes(sinBye, conBye)
+}
+
+const generarBracketConParticipantes = (competidoresPrimeraRonda, participantesConBye = []) => {
+  // Mantener el orden original (primero vs segundo, tercero vs cuarto, etc.)
+  const ordenados = [...competidoresPrimeraRonda]
+  
+  // Crear primera ronda manteniendo el orden
   const firstRound = []
-  for (let i = 0; i < shuffled.length; i += 2) {
+  for (let i = 0; i < ordenados.length; i += 2) {
     firstRound.push({
-      participant1: shuffled[i] ? shuffled[i].nombre : null,
-      participant2: shuffled[i + 1] ? shuffled[i + 1].nombre : null,
+      participant1: ordenados[i] ? ordenados[i].nombre : null,
+      participant2: ordenados[i + 1] ? ordenados[i + 1].nombre : null,
       score1: null,
       score2: null,
       winner: null
     })
   }
   
-  // Crear rondas subsiguientes
+  // Inicializar el bracket con la primera ronda
   bracket.value = [firstRound]
-  let currentRound = firstRound
   
-  while (currentRound.length > 1) {
+  // Calcular las rondas necesarias considerando TODOS los participantes
+  const totalParticipantes = competidoresPrimeraRonda.length + participantesConBye.length
+  const totalRondasNecesarias = Math.ceil(Math.log2(totalParticipantes))
+  
+  // Crear las rondas intermedias
+  let participantesEnRonda = firstRound.length
+  
+  // Generar las rondas hasta llegar a 1 match (la final)
+  for (let i = 1; i < totalRondasNecesarias; i++) {
+    participantesEnRonda = Math.ceil(participantesEnRonda / 2)
     const nextRound = []
-    for (let i = 0; i < currentRound.length; i += 2) {
+    
+    for (let j = 0; j < participantesEnRonda; j++) {
       nextRound.push({
         participant1: null,
         participant2: null,
@@ -357,15 +465,31 @@ const generarLlaves = () => {
         winner: null
       })
     }
+    
     bracket.value.push(nextRound)
-    currentRound = nextRound
+  }
+  
+  // Si hay participantes con BYE, agregarlos a la FINAL
+  if (participantesConBye.length > 0) {
+    const finalIndex = bracket.value.length - 1
+    const final = bracket.value[finalIndex]
+    
+    // Colocar el primer participante con BYE en participant1 de la final
+    if (final.length > 0 && participantesConBye[0]) {
+      final[0].participant1 = participantesConBye[0].nombre
+    }
   }
   
   bracketGenerado.value = true
+  byesSeleccionados.value = []
+  
+  const mensaje = participantesConBye.length > 0 
+    ? `Llaves generadas. ${participantesConBye.length} participante(s) pasaron directo a la final`
+    : 'El bracket del torneo ha sido generado exitosamente'
   
   notification.success({
     message: 'Llaves generadas',
-    description: 'El bracket del torneo ha sido generado exitosamente',
+    description: mensaje,
     duration: 3
   })
 }
@@ -426,10 +550,22 @@ const avanzarGanador = (rondaIndex, matchIndex, ganador) => {
   const posicionEnMatch = matchIndex % 2 === 0 ? 1 : 2
   
   // Asignar ganador a la siguiente ronda
+  const siguienteMatch = bracket.value[siguienteRonda][siguienteMatchIndex]
+  
   if (posicionEnMatch === 1) {
-    bracket.value[siguienteRonda][siguienteMatchIndex].participant1 = ganador
+    // Si participant1 ya está ocupado (por un BYE), colocar en participant2
+    if (siguienteMatch.participant1 && !siguienteMatch.participant2) {
+      siguienteMatch.participant2 = ganador
+    } else {
+      siguienteMatch.participant1 = ganador
+    }
   } else {
-    bracket.value[siguienteRonda][siguienteMatchIndex].participant2 = ganador
+    // Si participant2 ya está ocupado, colocar en participant1
+    if (siguienteMatch.participant2 && !siguienteMatch.participant1) {
+      siguienteMatch.participant1 = ganador
+    } else {
+      siguienteMatch.participant2 = ganador
+    }
   }
 }
 
